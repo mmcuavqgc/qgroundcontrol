@@ -1,4 +1,4 @@
-#include "avdecoder.h"
+﻿#include "avdecoder.h"
 #include <QDebug>
 #include "VideoBuffer.h"
 
@@ -174,6 +174,24 @@ AVDecoder::~AVDecoder()
 void AVDecoder::setMediaCallback(AVMediaCallback *media){
     this->mCallback = media;
 }
+
+void AVDecoder::deleteMediaCallback(AVMediaCallback *media)
+{
+    qDebug() << "--deleteMediaCallback";
+    QMutexLocker locker(&mCallbackMutex);
+    if (media != nullptr && mCallbackSet.contains(media)){
+        mCallbackSet.remove(media);
+    }
+}
+
+void AVDecoder::addMediaCallback(AVMediaCallback *media)
+{
+    QMutexLocker locker(&mCallbackMutex);
+    if(media != nullptr && !mCallbackSet.contains(media)){
+        mCallbackSet.insert(media);
+    }
+}
+
 
 /* ---------------------------线程任务操作-------------------------------------- */
 void AVDecoder::load(){
@@ -366,8 +384,14 @@ void AVDecoder::init(){
         int fps_den = mFormatCtx->streams[mVideoIndex]->r_frame_rate.den;
         if (fps_den > 0) {
             _fps = fps_num / fps_den;
-            if(mCallback)
-                mCallback->mediaUpdateFps(_fps);
+            foreach (AVMediaCallback* cCallback, mCallbackSet){
+                QMutexLocker locker(&mCallbackMutex);
+                if(cCallback != nullptr)
+                    cCallback->mediaUpdateFps(_fps);
+            }
+//            if(mCallback)
+//                mCallback->mediaUpdateFps(_fps);
+
         }
 
         //        if(mHWConfigList.size() <= 0){ //全例子仅调用一次  调用会导致内存泄露（未找到释放方法）
@@ -454,9 +478,9 @@ void AVDecoder::init(){
                 //                vFormat.height = mVideoCodecCtx->height;
                 //                    vFormat.format = mVideoCodecCtx->pix_fmt;
 
-                if(mCallback){
-                    mCallback->mediaHasVideoChanged();
-                }
+//                if(mCallback){
+//                    mCallback->mediaHasVideoChanged();
+//                }
                 videoq->setTimeBase(mFormatCtx->streams[mVideoIndex]->time_base);
                 videoq->init();
 
@@ -646,8 +670,13 @@ void AVDecoder::init2(){
         int fps_den = mFormatCtx->streams[mVideoIndex]->r_frame_rate.den;
         if (fps_den > 0) {
             _fps = fps_num / fps_den;
-            if(mCallback)
-                mCallback->mediaUpdateFps(_fps);
+            foreach (AVMediaCallback* cCallback, mCallbackSet){
+                QMutexLocker locker(&mCallbackMutex);
+                if(cCallback != nullptr)
+                    cCallback->mediaUpdateFps(_fps);
+            }
+//            if(mCallback)
+//                mCallback->mediaUpdateFps(_fps);
         }
 
 #if defined(Q_OS_WIN32)
@@ -738,9 +767,9 @@ void AVDecoder::init2(){
                 //                vFormat.height = mVideoCodecCtx->height;
                 //                    vFormat.format = mVideoCodecCtx->pix_fmt;
 
-                if(mCallback){
-                    mCallback->mediaHasVideoChanged();
-                }
+//                if(mCallback){
+//                    mCallback->mediaHasVideoChanged();
+//                }
                 videoq->setTimeBase(mFormatCtx->streams[mVideoIndex]->time_base);
                 videoq->init();
                 renderq->init();
@@ -1141,8 +1170,8 @@ void AVDecoder::statusChanged(AVDefine::AVMediaStatus status){
     if(mStatus == status)
         return;
     mStatus = status;
-    if(mCallback)
-        mCallback->mediaStatusChanged(status);
+//    if(mCallback)
+//        mCallback->mediaStatusChanged(status);
 }
 
 void AVDecoder::release(bool isDeleted){
@@ -1218,8 +1247,13 @@ void AVDecoder::release(bool isDeleted){
         tsSave = nullptr;
     }
     statusChanged(AVDefine::AVMediaStatus_UnknownStatus);
-    if(mCallback)
-        mCallback->formatCleanUpCallback();
+    foreach (AVMediaCallback* cCallback, mCallbackSet){
+        QMutexLocker locker(&mCallbackMutex);
+        if(cCallback != nullptr)
+            cCallback->formatCleanUpCallback();
+    }
+//    if(mCallback)
+//        mCallback->formatCleanUpCallback();
 }
 
 /* ------------------------显示函数---------------------------------- */
@@ -1230,64 +1264,68 @@ qint64 AVDecoder::requestRenderNextFrame(){
     if(renderq->size()){
         AVFrame* frame = renderq->get();
         VlcVideoFrame* _frame = nullptr;
-        if(mCallback /* 0*/){
-            mCallback->lockCallback((void**) &_frame);
-            if(!_frame->inited){
-                _frame->inited = true;
-                _frame->width  = frame->width;
-                _frame->height = frame->height;
-                _frame->planeCount = 3;
+        foreach (AVMediaCallback* mCallback, mCallbackSet){
+            QMutexLocker locker(&mCallbackMutex);
 
-                for (unsigned int i = 0; i < _frame->planeCount; ++i) {
-                    if(i == 0){
-                        _frame->pitch[i] = _frame->width;
-                        _frame->lines[i] = _frame->height      ;
-                        _frame->visiblePitch[i] = _frame->pitch[i];
-                        _frame->visibleLines[i] = _frame->lines[i];
-                    }else{
-                        _frame->pitch[i] = _frame->width >> 1;
-                        _frame->lines[i] =  _frame->height >> 1;
-                        _frame->visiblePitch[i] = _frame->pitch[i];
-                        _frame->visibleLines[i] = _frame->lines[i];
-                    }
-                    _frame->plane[i].resize(_frame->pitch[i] * _frame->lines[i]);
-                }
-            }
+            if(mCallback /* 0*/){
+                mCallback->lockCallback((void**) &_frame);
+                if(!_frame->inited){
+                    _frame->inited = true;
+                    _frame->width  = frame->width;
+                    _frame->height = frame->height;
+                    _frame->planeCount = 3;
 
-            uint8_t* y = (uint8_t*)_frame->plane[0].data();
-            for(int i = 0; i < _frame->height; i++){ //将y分量拷贝
-                uint8_t* srcy = frame->data[0] + frame->linesize[0] * i;
-                ::memcpy(y, srcy, _frame->width);
-                srcy += frame->linesize[0] ;
-                y += _frame->width ;
-            }
-
-            int uvH = _frame->height >> 1;
-            uint8_t* u = (uint8_t*)_frame->plane[1].data();
-            uint8_t* v = (uint8_t*)_frame->plane[2].data();
-            if((AVPixelFormat)frame->format == AV_PIX_FMT_NV12){
-                //                qDebug() << "-------------------->>HW" << frame->linesize[1] << uvH  << _frame->width;
-                for(int i = 0; i < uvH; i++){ //将uv分量拷贝
-                    uint8_t* uv = frame->data[1] + frame->linesize[1] * i;
-                    for(int j = 0; j < (_frame->width >> 1); j++){
-                        *v++ = *uv++;
-                        *u++ = *uv++;
+                    for (unsigned int i = 0; i < _frame->planeCount; ++i) {
+                        if(i == 0){
+                            _frame->pitch[i] = _frame->width;
+                            _frame->lines[i] = _frame->height      ;
+                            _frame->visiblePitch[i] = _frame->pitch[i];
+                            _frame->visibleLines[i] = _frame->lines[i];
+                        }else{
+                            _frame->pitch[i] = _frame->width >> 1;
+                            _frame->lines[i] =  _frame->height >> 1;
+                            _frame->visiblePitch[i] = _frame->pitch[i];
+                            _frame->visibleLines[i] = _frame->lines[i];
+                        }
+                        _frame->plane[i].resize(_frame->pitch[i] * _frame->lines[i]);
                     }
                 }
-            }else if((AVPixelFormat)frame->format == AV_PIX_FMT_YUV420P){
-                //                qDebug() << "-------------------->>" << frame->linesize[1] << frame->linesize[2] << frame->linesize[3] << frame->linesize[4] << uvH  << _frame->width;
-                for(int i = 0; i < uvH; i++){ //将uv分量拷贝
-                    uint8_t* srcV = frame->data[1] + frame->linesize[1] * i;
-                    uint8_t* srcU = frame->data[2] + frame->linesize[2] * i;  // + (_frame->width >> 1) + 16;
-                    ::memcpy(v, srcV, (_frame->width >> 1));
-                    ::memcpy(u, srcU, (_frame->width >> 1));
-                    srcV += frame->linesize[1] ;
-                    srcU += frame->linesize[2] ;
-                    v += (_frame->width >> 1) ;
-                    u += (_frame->width >> 1) ;
+
+                uint8_t* y = (uint8_t*)_frame->plane[0].data();
+                for(int i = 0; i < _frame->height; i++){ //将y分量拷贝
+                    uint8_t* srcy = frame->data[0] + frame->linesize[0] * i;
+                    ::memcpy(y, srcy, _frame->width);
+                    srcy += frame->linesize[0] ;
+                    y += _frame->width ;
                 }
+
+                int uvH = _frame->height >> 1;
+                uint8_t* u = (uint8_t*)_frame->plane[1].data();
+                uint8_t* v = (uint8_t*)_frame->plane[2].data();
+                if((AVPixelFormat)frame->format == AV_PIX_FMT_NV12){
+                    //                qDebug() << "-------------------->>HW" << frame->linesize[1] << uvH  << _frame->width;
+                    for(int i = 0; i < uvH; i++){ //将uv分量拷贝
+                        uint8_t* uv = frame->data[1] + frame->linesize[1] * i;
+                        for(int j = 0; j < (_frame->width >> 1); j++){
+                            *v++ = *uv++;
+                            *u++ = *uv++;
+                        }
+                    }
+                }else if((AVPixelFormat)frame->format == AV_PIX_FMT_YUV420P){
+                    //                qDebug() << "-------------------->>" << frame->linesize[1] << frame->linesize[2] << frame->linesize[3] << frame->linesize[4] << uvH  << _frame->width;
+                    for(int i = 0; i < uvH; i++){ //将uv分量拷贝
+                        uint8_t* srcV = frame->data[1] + frame->linesize[1] * i;
+                        uint8_t* srcU = frame->data[2] + frame->linesize[2] * i;  // + (_frame->width >> 1) + 16;
+                        ::memcpy(v, srcV, (_frame->width >> 1));
+                        ::memcpy(u, srcU, (_frame->width >> 1));
+                        srcV += frame->linesize[1] ;
+                        srcU += frame->linesize[2] ;
+                        v += (_frame->width >> 1) ;
+                        u += (_frame->width >> 1) ;
+                    }
+                }
+                mCallback->unlockCallback();
             }
-            mCallback->unlockCallback();
         }
         if(_isSaveImage){ //保存图片
             saveFrame(frame);
@@ -1313,8 +1351,13 @@ void AVDecoder::onFpsTimeout()
 
     if(20 < _fpsFrameSum && _fpsFrameSum < 62){
         _fps = (_fpsFrameSum + _fps) / 2;
-        if(mCallback)
-            mCallback->mediaUpdateFps(_fps);
+        foreach (AVMediaCallback* cCallback, mCallbackSet){
+            QMutexLocker locker(&mCallbackMutex);
+            if(cCallback != nullptr)
+               cCallback->mediaUpdateFps(_fps);
+        }
+//        if(mCallback)
+//            mCallback->mediaUpdateFps(_fps);
     }
     _fpsFrameSum = 0;
 }

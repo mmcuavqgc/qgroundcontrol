@@ -14,15 +14,7 @@ TransceiverManager::TransceiverManager(QGCApplication *app, QGCToolbox *toolbox)
 #if defined(Q_OS_ANDROID)
     QTimer::singleShot(1, this, SLOT(onStartTimer()));
 #elif defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
-    if(MMCSettings::getvalue("app/GSType", 0).toInt() == 3)
-    {
-        QTimer::singleShot(1, this, SLOT(onStartTimer()));
-    }
-//#elif defined(Q_OS_WIN32)
-//    if(MMCSettings::getvalue("app/GSType", 0).toInt() == 3)
-//    {
-//        QTimer::singleShot(1, this, SLOT(onStartTimer()));
-//    }
+    QTimer::singleShot(1, this, SLOT(onStartTimer()));
 #endif
 
     _fpvMember = new FpvMember(this);

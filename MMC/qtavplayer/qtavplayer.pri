@@ -1,5 +1,7 @@
-QT += multimedia quick qml core  usb
+QT += multimedia quick qml core
 CONFIG += c++11
+
+DEFINES += MMC_VIDEO_ENABLE
 
 SOURCES += \
     $$PWD/src/avdecoder.cpp \
@@ -9,7 +11,6 @@ SOURCES += \
     $$PWD/src/painter/GlPainter.cpp \
     $$PWD/src/painter/GlslPainter.cpp \
     $$PWD/src/Enums.cpp \
-    $$PWD/src/usbexample.cpp \
     $$PWD/src/fifo.cpp
 
 HEADERS += \
@@ -22,7 +23,6 @@ HEADERS += \
     $$PWD/src/painter/GlPainter.h \
     $$PWD/src/painter/GlslPainter.h \
     $$PWD/src/Enums.h \
-    $$PWD/src/usbexample.h \
     $$PWD/src/fifo.h
 
 RESOURCES += \
@@ -36,6 +36,11 @@ INCLUDEPATH += $$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/include
 
 
 AndroidBuild {
+    QT += usb
+    HEADERS += \
+        $$PWD/src/usbexample.h
+    SOURCES += \
+        $$PWD/src/usbexample.cpp
     contains(QT_ARCH, arm) {
         ANDROID_EXTRA_LIBS += \
             $$PWD/libs/android/libusb-1.0.22/android/libs/armeabi-v7a/libusb1.0.so\
@@ -52,8 +57,16 @@ AndroidBuild {
 }
 
 win32 {
-LIBS += -L$$PWD/libs/lib/win32/ -lavcodec -lavfilter -lavformat -lavutil -lswresample -lswscale
-INCLUDEPATH += $$PWD/libs/include
-DEPENDPATH += $$PWD/libs/include
-include(libusb0/libusb0.pri)
+    LIBS += -L$$PWD/libs/lib/win32/ -lavcodec -lavfilter -lavformat -lavutil -lswresample -lswscale
+    INCLUDEPATH += $$PWD/libs/include
+    DEPENDPATH += $$PWD/libs/include
+    include(libusb0/libusb0.pri)
+}
+
+WindowsBuild {
+    DESTDIR_WIN = $$replace(DESTDIR, "/", "\\")
+    ReleaseBuild {
+        # 拷贝ffmpeg_需要的依赖库文件
+        QMAKE_POST_LINK += $$escape_expand(\\n) $$QMAKE_COPY \"$$BASEDIR\\MMC\\qtavplayer\\libs\\bin\\*.dll\" \"$$DESTDIR_WIN\"
+    }
 }

@@ -1,4 +1,4 @@
-#ifndef AVMEDIACALLBACK_H
+﻿#ifndef AVMEDIACALLBACK_H
 #define AVMEDIACALLBACK_H
 
 #include "AVDefine.h"

@@ -21,6 +21,8 @@ public:
     ~RadioProvider();
     void _start();
 
+    void lostDevice();
+
 public slots:
     int writeData(char type, QByteArray buff);
     void closeSerialSlot();
@@ -38,12 +40,14 @@ private slots:
     void openSerialSlot();    //遍历串口
 
 private:
+
     int  openSerial(QString name); //打开串口
     void analysisPack(QByteArray buff);
     //解析并组包
     int splicePacket(const uint8_t data, uint8_t *dst);
     //发送数据
     int _writeData(char type, QByteArray buff);
+    void findDevice();
 
 private:
     QString _device;        //串口名
@@ -55,12 +59,15 @@ private:
 
     //---------------------
 //    int connectNumber = 0;
-    int _isconnect = 0;
+    bool        _isconnect;
+    bool        _findDevice;
+    QString     _findDevideName;
 //    QTimer*    _serialLostTimer = nullptr;
 
-    QTimer*    _openSerialTimer = nullptr;
+    QTimer*     _openSerialTimer = nullptr;
 
-    bool _isRuning = false;
+    bool        _isRuning = false;
 };
+
 
 #endif // RADIOPROVIDER_H

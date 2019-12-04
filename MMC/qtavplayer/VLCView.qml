@@ -1,4 +1,4 @@
-/*
+﻿/*
 * VLC-Qt QML Player
 * Copyright (C) 2015 Tadej Novak <tadej@tano.si>
 */
@@ -52,11 +52,4 @@ Rectangle {
         vidEncoder.url = videoSource
     }
 }
-
-
-
-
-
-
-
 

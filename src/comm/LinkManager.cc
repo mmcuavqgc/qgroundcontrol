@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  *
  *   (c) 2009-2016 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
@@ -88,7 +88,7 @@ void LinkManager::setToolbox(QGCToolbox *toolbox)
 
     connect(&_portListTimer, &QTimer::timeout, this, &LinkManager::_updateAutoConnectLinks);
 //    _portListTimer.start(_autoconnectUpdateTimerMSecs); // timeout must be long enough to get past bootloader on second pass
-
+#ifdef __mobile__
     SerialConfiguration* pSerialConfig = new SerialConfiguration("ttysWK2");
     if (pSerialConfig) {
         pSerialConfig->setBaud(115200);
@@ -97,6 +97,7 @@ void LinkManager::setToolbox(QGCToolbox *toolbox)
         _sharedAutoconnectConfigurations.append(SharedLinkConfigurationPointer(pSerialConfig));
         createConnectedLink(_sharedAutoconnectConfigurations.last(), false);
     }
+#endif
 }
 
 // This should only be used by Qml code

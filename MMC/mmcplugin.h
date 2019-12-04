@@ -1,8 +1,9 @@
-#ifndef MMCPLUGIN_H
+﻿#ifndef MMCPLUGIN_H
 #define MMCPLUGIN_H
 
 #include "qtavplayer/src/QmlVideoPlayer.h"
 #include "transceiver/transceivermanager.h"
+//#include "dumpfile.h"
 //#include "mmintrin.h"
 #include "mmctools.h"
 

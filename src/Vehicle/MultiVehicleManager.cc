@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  *
  *   (c) 2009-2016 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
@@ -55,7 +55,6 @@ MultiVehicleManager::MultiVehicleManager(QGCApplication* app, QGCToolbox* toolbo
 void MultiVehicleManager::setToolbox(QGCToolbox *toolbox)
 {
     QGCTool::setToolbox(toolbox);
-
     _firmwarePluginManager =     _toolbox->firmwarePluginManager();
     _joystickManager =           _toolbox->joystickManager();
     _mavlinkProtocol =           _toolbox->mavlinkProtocol();

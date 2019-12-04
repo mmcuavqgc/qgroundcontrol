@@ -1,4 +1,4 @@
-#include "androidraduimember.h"
+﻿#include "androidraduimember.h"
 #include <QDebug>
 
 AndroidRaduiMember::AndroidRaduiMember(QObject *parent)
@@ -14,7 +14,8 @@ void AndroidRaduiMember::analysisPack(int type, QByteArray msg)
     ushort tep = 0;
     float tmp;
     if(type == 0x04)
-    qDebug() << "---------------------- AndroidRaduiMember::analysisPack" << type << msg.toHex();
+        qDebug() << "---------------------- AndroidRaduiMember::analysisPack" << type << msg.toHex();
+#if defined (Q_OS_ANDROID)
     switch (type) {
     case 0x01:{  //心跳
         if(len != 16) break;
@@ -176,4 +177,5 @@ void AndroidRaduiMember::analysisPack(int type, QByteArray msg)
     default:
         break;
     }
+#endif
 }

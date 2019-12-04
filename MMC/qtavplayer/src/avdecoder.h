@@ -1,4 +1,4 @@
-#ifndef AVDECODER_H
+﻿#ifndef AVDECODER_H
 #define AVDECODER_H
 #include <QObject>
 #include <QReadWriteLock>
@@ -62,6 +62,9 @@ class AVDecoder: public QObject
 public:
     explicit AVDecoder(QObject *parent = nullptr);
     ~AVDecoder();
+    void addMediaCallback(AVMediaCallback *media);
+    void deleteMediaCallback(AVMediaCallback *media);
+
     void setMediaCallback(AVMediaCallback *media);
     bool getmIsInitEC() {return mIsInitEC;}
 
@@ -175,6 +178,10 @@ private:
     AVThread mProcessThread;
     AVThread mDecodeThread;
     AVThread mPlayeThread; //播放线程
+
+    QSet<AVMediaCallback *> mCallbackSet;
+    QMutex mCallbackMutex;
+
     AVMediaCallback *mCallback = nullptr;
     AVDefine::AVMediaStatus mStatus = AVDefine::AVMediaStatus_UnknownStatus;
 };

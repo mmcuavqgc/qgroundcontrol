@@ -1,4 +1,4 @@
-#ifndef AVDEFINE_H
+﻿#ifndef AVDEFINE_H
 #define AVDEFINE_H
 
 #define GENERATE_QML_PROPERTY(Name,Type) Q_PROPERTY(Type Name READ get##Name WRITE set##Name NOTIFY Name##Changed)

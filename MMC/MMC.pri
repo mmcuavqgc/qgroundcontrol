@@ -6,7 +6,8 @@ include(fpv/fpv.pri)
 
 HEADERS += \
     $$PWD/mmcplugin.h \
-    $$PWD/mmctools.h
+    $$PWD/mmctools.h \
+    $$PWD/dumpfile.h
 
 SOURCES += \
     $$PWD/mmctools.cpp

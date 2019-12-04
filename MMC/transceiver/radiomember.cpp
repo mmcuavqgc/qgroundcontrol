@@ -1,18 +1,11 @@
 ﻿#include "radiomember.h"
 
 #include "QGCApplication.h"
-//#include "MMCMount/pg2if1cameramount.h"
-//#include "MMCMount/filrcameramount.h"
-//#include "MMCMount/pgiy1cameramount.h"
 
 #include <QNetworkInterface>
 #include "stdio.h"
 
 #include "QGCConfig.h"
-
-//控制屏幕亮度库
-#pragma comment(lib, "gdi32.lib")
-#pragma comment(lib, "winmm.lib")
 
 #include <QProcess>
 RadioMember::RadioMember(QObject *parent)
@@ -24,7 +17,7 @@ RadioMember::RadioMember(QObject *parent)
         connect(_key[i], SIGNAL(upspring(MMCKey*)), this, SLOT(onUpspring(MMCKey*)));
         connect(_key[i], SIGNAL(longPress(MMCKey*)), this, SLOT(onLongPress(MMCKey*)));
         connect(_key[i], SIGNAL(click(MMCKey*)), this, SLOT(onClick(MMCKey*)));
-    } 
+    }
     keyBindFunction();
 
     QSettings settings;
@@ -53,8 +46,9 @@ RadioMember::RadioMember(QObject *parent)
     }
     setEnumToStringMapping(enumToString);
 
-    _mmcStationID = getHostMacAddress(); //并不唯一  后续改为  -  硬盘序号+网卡序号+主板序号 加密算法
+//    _mmcStationID = getHostMacAddress(); //并不唯一  后续改为  -  硬盘序号+网卡序号+主板序号 加密算法
 }
+
 
 void RadioMember::setEnumToStringMapping(const QMap<uint, QString> &enumToString)
 {
@@ -66,12 +60,12 @@ QStringList RadioMember::keyModes()
     QStringList keyModes;
 
     QMap<uint, QString>::const_iterator i = _enumToString.constBegin();
-     while (i != _enumToString.constEnd()) {
-//         cout << i.key() << ": " << i.value() << endl;
-         keyModes << i.value();
-         ++i;
-     }
-     return keyModes;
+    while (i != _enumToString.constEnd()) {
+        //         cout << i.key() << ": " << i.value() << endl;
+        keyModes << i.value();
+        ++i;
+    }
+    return keyModes;
 }
 
 
@@ -82,7 +76,7 @@ QStringList RadioMember::keyModes()
 void RadioMember::setKey(int i, uchar key)
 {
     if(i >= 0 && i < 8)
-        _key[i]->setKey((key & 0x02));
+        _key[7-i]->setKey((key & 0x02));
 }
 
 void RadioMember::setQuantity(uchar value)
@@ -98,8 +92,6 @@ void RadioMember::setVoltage(uchar value) //130~168
     setVoltage((float)voltage/10);
 }
 
-
-
 void RadioMember::setRadioSourceState(int state)
 {
     int statu = 0;
@@ -114,11 +106,9 @@ void RadioMember::setLidState(int state)
 {
     int statu = 0;
     if(state != 0) statu = 1;
-//    if(_radioSourceState == statu) return;
-//    qDebug() << QString("-------------------setLidState") << state;
+    //    if(_radioSourceState == statu) return;
+    //    qDebug() << QString("-------------------setLidState") << state;
 }
-
-
 
 void RadioMember::_say(const QString &text)
 {
@@ -146,113 +136,117 @@ void RadioMember::setVoltage(float value)
     }
 }
 
-/* **********************************************************************
- * 下发指令
- * **********************************************************************/
-
-void RadioMember::radioControl(int state)
+void RadioMember::switchControl(int state)
 {
-    if(state != 0 && state != 1 /*&& state != 2*/) return;
-
-    char type = 0x7f;
+    char type = 0x6f;
     char buff[1] = {state};
     emit _writeData(type, QByteArray(buff, 1));
 }
 
 
 
+/* **********************************************************************
+ * 下发指令
+ * **********************************************************************/
+
+void RadioMember::radioControl(int state)
+{
+    qDebug() << "---------RadioMember::radioControl" << state;
+    if(state != 0 && state != 1 /*&& state != 2*/) return;
+    char type = 0x7f;
+    char buff[1] = {state};
+    emit _writeData(type, QByteArray(buff, 1));
+
+}
+
 void RadioMember::analysisPack(int type, QByteArray msg)
 {
+//    qDebug() << "----analysisPack" << msg << type;
     uchar* buff = (uchar*)msg.data();
+//    int length = msg.length();
     ushort tep = 0;
-    float tmp;
-    if(type == 0x5f)
-//    qDebug() << "---------------------- RadioMember::analysisPack" << type << msg.toHex();
+//    float tmp;
+
     switch (type) {
-    case 0x1f: { //遥控器各通道 -- 16字节
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channel1(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channel2(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channel3(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channel4(tep);
-        buff += 2;
-        for(int i = 0; i < 8; i++){
-            this->setKey(i, *buff++);
-        }
-        break;
-        }
-    case 0x3f:{  //心跳
-        this->set_chargeState(*buff++);
-        this->setVoltage(*buff++);
-        this->setQuantity(*buff++);
-        this->set_time(((float)*buff++)/10);
-        this->set_stateOfHealth(*buff++);
-        memcpy(&tmp, buff, sizeof(float));
-        this->set_temperature(tmp);
-        buff += sizeof(float);
-        this->set_rockerState((*buff) & 0x01);
-        this->setRadioSourceState(((*buff)>>1 & 0x01));
-        this->setLidState(((*buff)>>2 & 0x01));
-        buff++;
-        this->set_rcMode(*buff++);
-        this->set_calirationState(*buff++);
-        this->setVer(buff);
-        buff += 4;
+    case 0x1F: { //遥控器各通道 -- 16字节
+        channels_data channelsData;
+        memcpy(&channelsData, msg.data(), msg.length());
+        //          qDebug() << "------channels_data" << channelsData.channels[0] << channelsData.keys[0];
+        set_channel1(channelsData.channels[0]);
+        set_channel2(channelsData.channels[1]);
+        set_channel3(channelsData.channels[2]);
+        set_channel4(channelsData.channels[3]);
+
+        qDebug() << "--------keys" << channelsData.keys[0] << channelsData.keys[1] << channelsData.keys[2]
+                 << channelsData.keys[3] << channelsData.keys[4] << channelsData.keys[5] << channelsData.keys[6]
+                 << channelsData.keys[7];
+        setKey(0,channelsData.keys[0]);
+        setKey(1,channelsData.keys[1]);
+        setKey(2,channelsData.keys[2]);
+        setKey(3,channelsData.keys[3]);
+        setKey(4,channelsData.keys[4]);
+        setKey(5,channelsData.keys[5]);
+        setKey(6,channelsData.keys[6]);
+        setKey(7,channelsData.keys[7]);
         break;
     }
-    case 0x4f:{  //遥控器校准时各通道值
+    case 0x3F:{  //心跳
+        heart_data heartdata;
+        memcpy(&heartdata, (uchar*)msg.data(), msg.length());
+        //        qDebug() << "--------heart beat" << msg.length() << sizeof(heart_data) << heartdata.charge_state << heartdata.bat_vol << heartdata.bat_per
+        //                 << heartdata.time << heartdata.state_of_health << heartdata.temperature << heartdata.mcu_mode
+        //                 << heartdata.rc_mode << heartdata.caliration_state << heartdata.ver << heartdata.radio_state
+        //                 << heartdata.remote_source;
+        //        qDebug() << "---------count index:" << heartdata.sbus_cnt << heartdata.pc_message_cnt;
+        this->set_chargeState(heartdata.charge_state);
+        this->setVoltage(heartdata.bat_vol/10.0f);
+        this->setQuantity(heartdata.bat_per);
+        this->set_time(heartdata.time);
+        this->set_stateOfHealth(heartdata.state_of_health);
+        this->set_temperature(heartdata.temperature);
+        this->setTeleControlType(heartdata.remote_source);
+        this->set_rcMode(heartdata.rc_mode);
+        this->set_calirationState(heartdata.caliration_state);
+        this->setVer(heartdata.ver);
+        this->setRockerState(heartdata.radio_state);
+        this->set_sbusCount(heartdata.sbus_cnt);
+        this->set_micCount(heartdata.mic_cnt);
+        this->set_pcCount(heartdata.pc_message_cnt);
+        this->set_vehicleCount(heartdata.fly_message_cnt);
+        break;
+    }
+    case 0x4F:{  //遥控器校准时各通道值
         this->set_checkStatus(*buff++);
+        //        qDebug() << "---------------------- RadioMember::analysisPack" << type << msg.toHex();
+        qDebug() << "-----set_checkStatus" << checkStatus();
         break;
     }
-    case 0x5f:{  //遥控器校准时各通道值
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMax1(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMax2(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMax3(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMax4(tep);
-        buff += 2;
+    case 0x5F:{  //遥控器校准时各通道值
+        //        qDebug() << "---------------------- RadioMember::analysisPack" << type << msg.toHex();
+        calirate_data calirData;
+        memcpy(&calirData, (uchar*)msg.data(), msg.length());
+        //        qDebug() << "------------calirate data:"
+        //                 << calirData.maxChannel1 << calirData.maxChannel2 << calirData.maxChannel3 << calirData.maxChannel4
+        //                 << calirData.minChannel1 << calirData.minChannel2 << calirData.minChannel3 << calirData.minChannel4
+        //                 << calirData.midChannel1 << calirData.midChannel2 << calirData.midChannel3 << calirData.midChannel4;
+        this->set_channelBMax1(calirData.maxChannel1);
+        this->set_channelBMax2(calirData.maxChannel2);
+        this->set_channelBMax3(calirData.maxChannel3);
+        this->set_channelBMax4(calirData.maxChannel4);
 
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMid1(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMid2(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMid3(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMid4(tep);
-        buff += 2;
+        this->set_channelBMed1(calirData.midChannel1);
+        this->set_channelBMed2(calirData.midChannel2);
+        this->set_channelBMed3(calirData.midChannel3);
+        this->set_channelBMed4(calirData.midChannel4);
 
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMin1(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMin2(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMin3(tep);
-        buff += 2;
-        memcpy(&tep, buff, sizeof(ushort));
-        this->set_channelBMin4(tep);
-        buff += 2;
+        this->set_channelBMin1(calirData.minChannel1);
+        this->set_channelBMin2(calirData.minChannel2);
+        this->set_channelBMin3(calirData.minChannel3);
+        this->set_channelBMin4(calirData.minChannel4);
         break;
     }
-    case 0x8f:{  //单片机唯一ID
-        this->setRadioID(QByteArray((char*)buff, 12));
+    case 0x8F:{  //单片机唯一ID
+        this->setRadioID(QString(msg)/*QByteArray((char*)buff, 12)*/);
         break;
     }
     default:
@@ -271,31 +265,31 @@ int RadioMember::keyBinding(int key, QString type)
 
     QMap<uint, QString>::const_iterator i = _enumToString.constBegin();
     int value = -1;
-     while (i != _enumToString.constEnd()) {
-         if(i.value() == type){
-                value = i.key();
-                break;
-         }
-         ++i;
-     }
+    while (i != _enumToString.constEnd()) {
+        if(i.value() == type){
+            value = i.key();
+            break;
+        }
+        ++i;
+    }
 
-     if(value != -1){
-         _keyId[key] = (KEY_TYPE)value; //此处还要判断一次value是否在枚举范围内
+    if(value != -1){
+        _keyId[key] = (KEY_TYPE)value; //此处还要判断一次value是否在枚举范围内
 
-         QSettings settings;
-         settings.beginGroup("MMC_KEYS_TYPE");
-         settings.setValue(QString("MMC_KEY%1").arg(key),    (KEY_TYPE)value);
-         settings.endGroup();
-     }else
-         return -2;
-     return 1;
+        QSettings settings;
+        settings.beginGroup("MMC_KEYS_TYPE");
+        settings.setValue(QString("MMC_KEY%1").arg(key),    (KEY_TYPE)value);
+        settings.endGroup();
+    }else
+        return -2;
+    return 1;
 }
 
 QString RadioMember::getKeyValue(int key)
 {
     if(key < 1 || key > 8) return "";
     if(_enumToString.contains(_keyId[key])){ //包含此键
-            return _enumToString[_keyId[key]];
+        return _enumToString[_keyId[key]];
     }
     return "";
 }
@@ -303,8 +297,9 @@ QString RadioMember::getKeyValue(int key)
 void RadioMember::keyBindFunction()
 {
     /* 按键与功能绑定 -- 后面可用配置对应*/
-    _keyId[1] =KEY_ZOOM_DOWN;      //缩小
-    _keyId[2] =KEY_ZOOM_UP;        //放大
+    _keyId[1] =KEY_ZOOM_UP;      //放大
+    _keyId[2] =KEY_ZOOM_DOWN;        //缩小
+
     _keyId[5] =KEY_FN;             //FN
     _keyId[6] =KEY_MODE;           //云台模式
     _keyId[7] =KEY_REC;            //录像
@@ -319,6 +314,8 @@ void RadioMember::keyBindFunction()
 
 void RadioMember::onPress(MMCKey *key)
 {
+    return;
+//    qDebug() << "-------RadioMember::onPress(MMCKey *key)" << key->id();
     switch (_keyId[key->id()]) {
     case KEY_ZOOM_DOWN: //缩小
         zoomDown();
@@ -327,10 +324,24 @@ void RadioMember::onPress(MMCKey *key)
         zoomUp();
         break;
     case KEY_MODE:           //云台模式
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_MODE, true);
+#endif
         break;
     case KEY_PHOTO:          //拍照
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_PHOTO, true);
+#endif
         break;
     case KEY_REC:            //录像
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_REC, true);
+#endif
+        break;
+    case KEY_FN:             //FN -- 复合功能
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_FN, true);
+#endif
         break;
     default:
         break;
@@ -339,6 +350,7 @@ void RadioMember::onPress(MMCKey *key)
 
 void RadioMember::onUpspring(MMCKey *key)
 {
+    return;
     switch (_keyId[key->id()]) {
     case KEY_ZOOM_DOWN: //缩小
         zoomStop();
@@ -348,10 +360,24 @@ void RadioMember::onUpspring(MMCKey *key)
         break;
     case KEY_MODE:           //云台模式  -- 长按压
         if(key->accumulatedTime()  > 2) locking();
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_MODE, false);
+#endif
         break;
     case KEY_PHOTO:          //拍照
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_PHOTO, false);
+#endif
         break;
     case KEY_REC:            //录像
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_REC, false);
+#endif
+        break;
+    case KEY_FN:             //FN -- 复合功能
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+        controlPayload(KEY_FN, false);
+#endif
         break;
     default:
         break;
@@ -360,6 +386,7 @@ void RadioMember::onUpspring(MMCKey *key)
 
 void RadioMember::onLongPress(MMCKey *key)
 {
+    return;
     switch (_keyId[key->id()]) {
     case KEY_ZOOM_DOWN: //缩小
         zoomDown();
@@ -380,6 +407,7 @@ void RadioMember::onLongPress(MMCKey *key)
 
 void RadioMember::onClick(MMCKey *key)
 {
+    return;
     switch (_keyId[key->id()]) {
     case KEY_ZOOM_DOWN: //缩小
         break;
@@ -398,26 +426,8 @@ void RadioMember::onClick(MMCKey *key)
         REC();
         break;
 
-    /* 其它扩展功能 -- 服务自定义功能键 */
+        /* 其它扩展功能 -- 服务自定义功能键 */
     case KEY_UNDEFINED:                     //未定义
-        break;
-    case KEY_VOLUME_UP:                     //音量加
-        upVolume();
-        break;
-    case KEY_VOLUME_DOWN:                   //音量减
-        downVolume();
-        break;
-    case KEY_BRIGHTNESS_UP:                 //亮度加
-        upGamma();
-        break;
-    case KEY_BRIGHTNESS_DOWN:               //亮度减
-        downGamma();
-        break;
-    case KEY_VEHICLE_AUTO_MODE:             //飞机航线模式
-        autoMode();
-        break;
-    case KEY_VEHICLE_LOITER_MODE:           //飞机悬停模式
-        loiterMode();
         break;
     default:
         break;
@@ -429,44 +439,78 @@ void RadioMember::onClick(MMCKey *key)
  * **********************************************************************/
 void RadioMember::photo()
 {
+//#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 //    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
 //    if(activeVehicle){
-//        activeVehicle->doCameraTrigger();
+//        MountInfo* mount = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount)
+//            mount->doCameraTrigger();
 //    }
+//#endif
 }
 
 void RadioMember::REC()
 {
+//#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 //    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-//    if(activeVehicle && !activeVehicle->mountLost() && activeVehicle->currentMount() &&activeVehicle->currentMount()->mountType() == MountInfo::MOUNT_CAM_INFO){
-//        CameraMount* camMount = dynamic_cast<CameraMount*>(activeVehicle->currentMount());
-//        camMount->videoTape();
+//    if(activeVehicle){
+//        MountInfo* mount = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount && mount->mountType() == MountInfo::MOUNT_CAM_INFO){
+//            CameraMount* camMount = dynamic_cast<CameraMount*>(mount);
+//            camMount->videoTape();
+//        }
 //    }
+//#endif
 }
 
 void RadioMember::Mode()
 {
+//#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 //    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-//    if(activeVehicle && !activeVehicle->mountLost() && activeVehicle->currentMount() &&activeVehicle->currentMount()->mountType() == MountInfo::MOUNT_CAM_INFO){
-//        CameraMount* camMount = dynamic_cast<CameraMount*>(activeVehicle->currentMount());
-//        int mode = camMount->mode();
-//        if(mode == 0) mode = 2;
-//        else mode = 3 - mode;
-//        camMount->controlMode(mode);
+//    if(activeVehicle){
+//        MountInfo* mount = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount && mount->mountType() == MountInfo::MOUNT_CAM_INFO){
+//            CameraMount* camMount = dynamic_cast<CameraMount*>(mount);
+//            int mode = camMount->mode();
+//            if(mode == 0) mode = 2;
+//            else mode = 3 - mode;
+//            camMount->controlMode(mode);
+//        }
+//        else if(mount && mount->mountType() == MountInfo::MOUNT_BASE)
+//        {
+//            PayloadMount* payloadMount = dynamic_cast<PayloadMount*>(mount);
+//            static int i=0;
+//            payloadMount->controlGimbalMode(i);
+//            if(i == 0)
+//                i=1;
+//            else
+//                i=0;
+//        }
 //    }
+//#endif
 }
 
 void RadioMember::locking()
 {
+//#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 //    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-//    if(activeVehicle && !activeVehicle->mountLost() && activeVehicle->currentMount() &&activeVehicle->currentMount()->mountType() == MountInfo::MOUNT_CAM_INFO){
-//        CameraMount* camMount = dynamic_cast<CameraMount*>(activeVehicle->currentMount());
-//        int mode = camMount->mode();
-//        if(mode != 0){
-//           mode = 0;
-//          camMount->controlMode(mode);
+//    if(activeVehicle){
+//        MountInfo* mount = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount && mount->mountType() == MountInfo::MOUNT_CAM_INFO){
+//            CameraMount* camMount = dynamic_cast<CameraMount*>(mount);
+//            int mode = camMount->mode();
+//            if(mode != 0){
+//                mode = 0;
+//                camMount->controlMode(mode);
+//            }
+//        }
+//        else if(mount && mount->mountType() == MountInfo::MOUNT_BASE) //长按回中
+//        {
+//            PayloadMount* payloadMount = dynamic_cast<PayloadMount*>(mount);
+//            payloadMount->controlGimbalMode(2);
 //        }
 //    }
+//#endif
 }
 
 void RadioMember::zoomUp()
@@ -491,284 +535,122 @@ void RadioMember::zoomStop()
 
 void RadioMember::controlZoom(int zoom)
 {
+//#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
 //    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-//    if(activeVehicle && !activeVehicle->mountLost() && activeVehicle->currentMount() &&activeVehicle->currentMount()->mountType() == MountInfo::MOUNT_CAM_INFO){
-//        CameraMount* camMount = dynamic_cast<CameraMount*>(activeVehicle->currentMount());
-//        camMount->controlZoom(zoom);
+//    if(activeVehicle){
+//        MountInfo* mount = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount && mount->mountType() == MountInfo::MOUNT_CAM_INFO){
+//            CameraMount* camMount = dynamic_cast<CameraMount*>(mount);
+//            camMount->controlZoom(zoom);
+//        }
+//        else if(mount && mount->mountType() == MountInfo::MOUNT_BASE)
+//        {
+//            PayloadMount* payloadMount = dynamic_cast<PayloadMount*>(mount);
+//            payloadMount->controlZoom(zoom);
+//        }
 //    }
+//#endif
 }
 
 void RadioMember::fnClick()
 {
-  /*  Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-    if(activeVehicle && !activeVehicle->mountLost() && activeVehicle->currentMount()){
-        switch (activeVehicle->currentMount()->mountType()){
-        case MountInfo::MOUNT_SPEAKE: //喊话器   --  [禁音与恢复] -- 该挂载不需要此功能
-            if(1){
+//#if defined(Q_OS_LINUX) || defined(Q_OS_WIN32)
+//    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+//    if(activeVehicle){
+//        MountInfo* mount_ = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount_){
+//            switch (mount_->mountReadId()){
+//            case MountInfo::MOUNT_SPEAKE: //喊话器   --  [禁音与恢复] -- 该挂载不需要此功能
+//                if(1){
 
-            }
-            break;
-        case MountInfo::MOUNT_4GSPEAKE: //4G喊话器   --  [禁音与恢复]
-            if(1){
-                Speake4GMount* mount = dynamic_cast<Speake4GMount*>(activeVehicle->currentMount());
-                static int volume = 0;
-                if(mount->volume() != 0) {
-                    volume = mount->volume();
-                    mount->volumeControl(0);
-                }else{
-                    mount->volumeControl(volume);
-                    volume = 0;
-                }
-            }
-            break;
-        case MountInfo::MOUNT_LIGHT: //探照灯  --  [开关灯]
-            if(1){
-                LightMount* mount = dynamic_cast<LightMount*>(activeVehicle->currentMount());
-                mount->lightControl(1 - mount->state() != 0);
-            }
-            break;
+//                }
+//                break;
+//            case MountInfo::MOUNT_4GSPEAKE: //4G喊话器   --  [禁音与恢复]
+//                if(1){
+//                    Speake4GMount* mount = dynamic_cast<Speake4GMount*>(mount_);
+//                    static int volume = 0;
+//                    if(mount->volume() != 0) {
+//                        volume = mount->volume();
+//                        mount->volumeControl(0);
+//                    }else{
+//                        mount->volumeControl(volume);
+//                        volume = 0;
+//                    }
+//                }
+//                break;
+//            case MountInfo::MOUNT_LIGHT: //探照灯  --  [开关灯]
+//                if(1){
+//                    LightMount* mount = dynamic_cast<LightMount*>(mount_);
+//                    mount->lightControl(1 - mount->state() != 0);
+//                }
+//                break;
 
-        case MountInfo::MOUNT_DROP: //抛投  -- [投掷]
-            if(1){
-                DropMount* mount = dynamic_cast<DropMount*>(activeVehicle->currentMount());
-                mount->dropCmmd();
-            }
-            break;
-        case MountInfo::MOUNT_CAM_INFO:
-            switch (dynamic_cast<CameraMount*>(activeVehicle->currentMount())->cam_type()){
-            case CameraMount::CAM_SONGXIA20: //20倍松下云台  -- [相机模式]
-                if(1){
-                    CameraMount* mount = dynamic_cast<CameraMount*>(activeVehicle->currentMount());
-                    mount->switchCameraMode();
-                }
-                break;
+//            case MountInfo::MOUNT_DROP: //抛投  -- [投掷]
+//                if(1){
+//                    DropMount* mount = dynamic_cast<DropMount*>(mount_);
+//                    mount->dropCmmd();
+//                }
+//                break;
+//            case CameraMount::CAM_SONGXIA20: //20倍松下云台  -- [相机模式]
+//                if(1){
+//                    CameraMount* mount = dynamic_cast<CameraMount*>(mount_);
+//                    mount->switchCameraMode();
+//                }
+//                break;
 
-            case CameraMount::CAM_PG2IF1_LS1Z20: //高清双光 20b
-                if(1){
-                    PG2IF1CameraMount* mount = dynamic_cast<PG2IF1CameraMount*>(activeVehicle->currentMount());
-                    mount->controlFrame(1 - mount->frame());
-                }
-                break;
+//            case CameraMount::CAM_PG2IF1_LS1Z20: //高清双光 20b
+//                if(1){
+//                    PG2IF1CameraMount* mount = dynamic_cast<PG2IF1CameraMount*>(mount_);
+//                    mount->controlFrame(1 - mount->frame());
+//                }
+//                break;
 
-            case CameraMount::CAM_Filr: //Filr红外
-            case CameraMount::CAM_PGIY1: //海视英科红外
-                if(1){
-                    CameraMount* mount = dynamic_cast<CameraMount*>(activeVehicle->currentMount());
-                    mount->switchColor();
-                }
-                break;
-            }
-            break;
-        }
-    } */
-}
-
-/* 飞机模式切换 */
-void RadioMember::autoMode()
-{
-    setVehicleMode(KEY_VEHICLE_AUTO_MODE);
-}
-
-void RadioMember::loiterMode()
-{
-    setVehicleMode(KEY_VEHICLE_LOITER_MODE);
-}
-
-void RadioMember::setVehicleMode(RadioMember::KEY_TYPE keyType)
-{
-    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
-    if(activeVehicle){
-        QString flightMode =  activeVehicle->flightMode();
-        QString mode = _enumToString[keyType];
-            if(flightMode != mode)
-                activeVehicle->setFlightMode(mode);
-    }
-    //    QStringList flightModes(void);
-}
-
-int RadioMember::setGamma(int direction)
-{
-
-#if defined(Q_OS_WIN32)
-    void * lpGamma = NULL;
-    int iArrayValue = 0;
-    int bright = 0;
-    WORD gMap[3][256] = {0};
-    lpGamma = &gMap;
-    HDC hdc = ::GetDC(NULL);
-    if (NULL == hdc)
-        return -1;
-
-    if (FALSE == GetDeviceGammaRamp(hdc, lpGamma))
-                return -2;
-
-    for (int i = 0; i < 256; i++)
-    {
-        for(int j=0; j < 3; j++){
-
-           if(i > 0){
-               bright = gMap[j][i] / i - 128;
-           }else{
-               bright = gMap[j][i]  - 128;
-           }
-
-           bright += direction;
-           if (bright > 255)
-                bright = 255;
-           if (bright < 0)
-                bright = 0;
-           iArrayValue = i * (bright + 128);
-           if (iArrayValue > 65535)
-               iArrayValue = 65535;
-           gMap[j][i] = (WORD)iArrayValue;
-        }
-    }
-
-    if (FALSE == SetDeviceGammaRamp(hdc, lpGamma))
-        return -3;
-
-#else
-    qDebug()<<"Q_OS_other";
-#endif
-
-    return 0;
-}
-
-void RadioMember::upGamma()
-{
-    setGamma(20);
-}
-
-void RadioMember::downGamma()
-{
-    setGamma(-20);
-}
-
-void RadioMember::setVolume(bool isUp, uchar direction)
-{
-//    DWORD volume;
-//    waveOutGetVolume(0, &volume);
-//    ushort value = LOWORD(volume); //高位为左声道，低位为右声道
-//    uchar  leftVolume = (value >> 8) & 0xff;
-//    uchar  rightVolume = value & 0xff;
-//    if(isUp){
-//        if(leftVolume  > 255 - direction)
-//            leftVolume = 255;
-//        else
-//            leftVolume  += direction;
-//        if((ushort)rightVolume >255 - direction)
-//            rightVolume = 255;
-//        else
-//            rightVolume += direction;
-//    }else{
-//        if(leftVolume < direction )
-//            leftVolume = 0;
-//        else
-//            leftVolume  -= direction;
-
-//        if(rightVolume < direction )
-//            rightVolume = 0;
-//        else
-//            rightVolume -= direction;
-//    }
-
-//    value = (((ushort)leftVolume << 8) & 0xff00) + (rightVolume & 0xff);
-//    waveOutSetVolume(0, MAKELONG(value, value));
-}
-
-void RadioMember::upVolume()
-{
-    setVolume(true, 25);
-}
-
-void RadioMember::downVolume()
-{
-    setVolume(false, 25);
-}
-
-/* **********************************************************************
- * cpu唯一码
- * **********************************************************************/
-
-void RadioMember::getCpuId(unsigned int CPUInfo[], unsigned int InfoType)
-{
-
-}
-
-void RadioMember::getCpuIdex(unsigned int CPUInfo[], unsigned int InfoType, unsigned int ECXValue)
-{
-//#if defined(_MSC_VER) // MSVC
-//#if defined(_WIN64) // 64位下不支持内联汇编. 1600: VS2010, 据说VC2008 SP1之后才支持__cpuidex.
-//    __cpuidex((int*)(void*)CPUInfo, (int)InfoType, (int)ECXValue);
-//#else
-//    if (NULL==CPUInfo)  return;
-//    _asm{
-//        // load. 读取参数到寄存器.
-//        mov edi, CPUInfo;
-//        mov eax, InfoType;
-//        mov ecx, ECXValue;
-//        // CPUID
-//        cpuid;
-//        // save. 将寄存器保存到CPUInfo
-//        mov [edi], eax;
-//        mov [edi+4], ebx;
-//        mov [edi+8], ecx;
-//        mov [edi+12], edx;
+//            case CameraMount::CAM_Filr: //Filr红外
+//            case CameraMount::CAM_PGIY1: //海视英科红外
+//                if(1){
+//                    CameraMount* mount = dynamic_cast<CameraMount*>(mount_);
+//                    mount->switchColor();
+//                }
+//                break;
+//            }
+//        }
 //    }
 //#endif
-//#endif
 }
 
-QString RadioMember::getCpuId()
+
+void RadioMember::controlPayload(KEY_TYPE keyType, bool isPress)
 {
-    QString cpu_id = "";
-    unsigned int dwBuf[4]={0};
-    unsigned long long ret = 0;
-    getCpuId(dwBuf, 1);
-    ret = dwBuf[3];
-    ret = ret << 32;
-
-    QString str0 = QString::number(dwBuf[3], 16).toUpper();
-    QString str0_1 = str0.rightJustified(8,'0');//这一句的意思是前面补0，但是我遇到的情况是这里都填满了
-    QString str1 = QString::number(dwBuf[0], 16).toUpper();
-    QString str1_1 = str1.rightJustified(8,'0');//这里必须在前面补0，否则不会填满数据
-    //cpu_id = cpu_id + QString::number(dwBuf[0], 16).toUpper();
-    cpu_id = str0_1 + str1_1;
-    return cpu_id;
-}
-
-QString RadioMember::getCpuId2()
-{
-    QString cpu_id = "";
-    QProcess p(0);
-    p.start("wmic CPU get ProcessorID");    p.waitForStarted();
-    p.waitForFinished();
-    cpu_id = QString::fromLocal8Bit(p.readAllStandardOutput());
-    cpu_id = cpu_id.remove("ProcessorId").trimmed();
-    return cpu_id;
-}
-
-QString RadioMember::getHostMacAddress()
-{
-    QString strMacAddr = "";
-#ifdef Q_OS_WIN32
-    QSettings settings(QGC_ORG_NAME, QGC_APPLICATION_NAME);
-    strMacAddr = settings.value("strMacAddr", "").toString();//读
-    if(!strMacAddr.isEmpty()) return strMacAddr;
-#endif
-
-    QList<QNetworkInterface> nets = QNetworkInterface::allInterfaces();// 获取所有网络接口列表
-       int nCnt = nets.count();
-       for(int i = 0; i < nCnt; i ++)
-       {
-           strMacAddr = nets[i].hardwareAddress();
-           break;
-       }
-#ifdef Q_OS_WIN32
-    if(!strMacAddr.isEmpty())
-        settings.setValue("strMacAddr", strMacAddr);//写
-#endif
-       return strMacAddr;
+//    Vehicle* activeVehicle = qgcApp()->toolbox()->multiVehicleManager()->activeVehicle();
+//    if(activeVehicle){
+//        MountInfo* mount = activeVehicle->mmcMountManager()->currentMount();
+//        if(mount && mount->mountType() == MountInfo::MOUNT_BASE)
+//        {
+//            PayloadMount* payloadMount;
+//            payloadMount = dynamic_cast<PayloadMount*>(mount);
+//            switch (keyType)
+//            {
+//            case KEY_ZOOM_DOWN:   //缩小
+//                break;
+//            case KEY_ZOOM_UP:        //放大
+//                break;
+//            case KEY_FN:             //FN
+//                payloadMount->controlCameraMode(isPress? 1 : 0);
+//                break;
+//            case KEY_MODE:           //云台模式
+//                payloadMount->controlGimbalMode(isPress? 1: 0);
+//                break;
+//            case KEY_REC:            //录像
+//                payloadMount->controlRecodec(isPress? 1: 0);
+//                break;
+//            case KEY_PHOTO:          //拍照
+//                payloadMount->controlPhoto(isPress? 1: 0);
+//                break;
+//            default:
+//                break;
+//            }
+//        }
+//    }
 }
 
 

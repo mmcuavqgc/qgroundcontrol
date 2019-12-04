@@ -1,4 +1,4 @@
-#ifndef FPVDATAMUTUAL_H
+﻿#ifndef FPVDATAMUTUAL_H
 #define FPVDATAMUTUAL_H
 
 #include <QObject>

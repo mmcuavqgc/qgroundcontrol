@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  *
  *   (c) 2009-2016 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
@@ -163,6 +163,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
+//    DeclareDumpFile(); //增加crash记录功能 **刘悬
 #endif
 
     // The following calls to qRegisterMetaType are done to silence debug output which warns

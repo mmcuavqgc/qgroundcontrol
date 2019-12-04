@@ -44,16 +44,20 @@ VlcQmlVideoObject::VlcQmlVideoObject(QQuickItem *parent)
     setFlag(ItemHasContents, true);
 
     _decoder->setMediaCallback(this);
+    _decoder->addMediaCallback(this);
 
 }
 
 VlcQmlVideoObject::~VlcQmlVideoObject()
 {
-    qDebug() << "----------------------VlcQmlVideoObject::~VlcQmlVideoObject";
     if (_graphicsPainter)
         delete _graphicsPainter;
+    qDebug() << "----------------------VlcQmlVideoObject::~VlcQmlVideoObject" << _decoder;
     if(_decoder)
-        delete _decoder;
+    {
+        _decoder->deleteMediaCallback(this);
+    }
+
 }
 
 QRectF VlcQmlVideoObject::boundingRect() const

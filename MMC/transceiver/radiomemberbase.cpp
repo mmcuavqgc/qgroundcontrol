@@ -1,85 +1,39 @@
-#include "radiomemberbase.h"
+﻿#include "radiomemberbase.h"
 #include <QDebug>
 
 #define  R_MODE  0X0A
 #define  L_MODE  0X05
 
-
-MMCKey::MMCKey(int id, QObject *parent) : QObject(parent), _id(id)
-{
-    timer = new QTimer(this);
-    timer->setInterval(100);
-    connect(timer, SIGNAL(timeout()), this, SLOT(onTimeOut()));
-
-}
-
-void MMCKey::setKey(bool key)
-{
-    if(key == _key) return;
-    _key = key;
-    emit keyChanged(_key);
-
-    if(_key){
-        emit press(this);
-        _accumulatedTime = 1;
-        timer->start();
-    }else{
-        emit upspring(this);
-        timer->stop();
-        if(_accumulatedTime  < 5) emit click(this);
-    }
-}
-
-void MMCKey::onTimeOut()
-{
-    _accumulatedTime++;
-    emit longPress(this);
-}
-
 //------------------------------------------------[分割线]----------------------------------------------------
 RadioMemberBase::RadioMemberBase(QObject *parent)
     : QObject(parent)
     , _checkStatus(No_Check)
-    , _chargeState(0)
+    , _chargeState(-1)
     , _time(0)
     , _stateOfHealth(0)
     , _temperature(0)
-    , _rockerState(1)
-    , _rcMode(0)
+    , _rockerState(-1)
+    , _rcMode(-1)
     , _ver("")
     , _calirationState(0)
     , _channel1(1500)
     , _channel2(1500)
     , _channel3(1500)
     , _channel4(1500)
-    , _channel5(1500)
-    , _channel6(1500)
-    , _channel7(1500)
-    , _channel8(1500)
-    , _channel9(1500)
-    , _channel10(1500)
-    , _channel11(1500)
-    , _channel12(1500)
-    , _channel13(1500)
-    , _channel14(1500)
     , _channelBMax1(0)
     , _channelBMax2(0)
     , _channelBMax3(0)
     , _channelBMax4(0)
-    , _channelBMax7(0)
-    , _channelBMax8(0)
     , _channelBMin1(0)
     , _channelBMin2(0)
     , _channelBMin3(0)
     , _channelBMin4(0)
-    , _channelBMin7(0)
-    , _channelBMin8(0)
-    , _channelBMid1(0)
-    , _channelBMid2(0)
-    , _channelBMid3(0)
-    , _channelBMid4(0)
-    , _channelBMid7(0)
-    , _channelBMid8(0)
+    , _channelBMed1(0)
+    , _channelBMed2(0)
+    , _channelBMed3(0)
+    , _channelBMed4(0)
+    , _teleControlType(0)
+//    , _sbusCount(0)
 {
     /* 同步电台需要主动获取数据的计时器 */
     _syncDataTimer = new QTimer(this);
@@ -113,22 +67,40 @@ void RadioMemberBase::setRadioLock(bool ck)
     }
 }
 
-void RadioMemberBase::setVer(uchar *buff)
+void RadioMemberBase::setVer(uint32_t version)
 {
-    uint32_t tmp = 0;
-    uint32_t version = 0;
-    memcpy(&tmp, buff, sizeof(uint32_t));
-    memcpy(&version, &tmp, sizeof(uint32_t));
-    int versionHardware     = (int) ((version >> 30) & 0x3);
-    int versionFunction     = (int) ((version >> 24) & 0x3f);
-    int versionOptimization = (int) ((version >> 16) & 0xff);
-    int versionYear         = (int) ((version >> 9) & 0x7f);
-    int versionMonth        = (int) ((version >> 5) & 0xf);
-    int versionDay          = (int) ((version >> 0) & 0x1f);
-    int versionTime         = versionYear*10000 + versionMonth * 100 + versionDay;
-    QString vers            = QString("%1.%2.%3.%4").arg(versionHardware).arg(versionFunction).arg(versionOptimization).arg(versionTime);
+    int a = version &0x1f; //日
+    int b = (version >> 5) & (0x0f);//月
+    int c = (version >> (5+4)) & (0x7f);//年
+    int d = (version >> (5+4+7)) & (0xff);//优化
+    int e = (version >> (5+4+7+8)) & (0x3f);//功能增删
+    int f = (version >> (5+4+7+8+6)) & (0x03);//硬件平台
+    QString year;
+    if(c < 10)
+        year = QString("0%1").arg(c);
+    else
+        year = QString("%1").arg(c);
+    QString mouth;
+    if(b < 10)
+        mouth = QString("0%1").arg(b);
+    else
+        mouth = QString("%1").arg(b);
+    QString day;
+    if(a < 10)
+        day = QString("0%1").arg(a);
+    else
+        day = QString("%1").arg(a);
+    QString vers = QString("%1.%2.%3.%4%5%6").arg(f).arg(e).arg(d).arg(year).arg(mouth).arg(day);
     set_ver(vers);
 }
+
+//void RadioMemberBase::setSbusCount(int count)
+//{
+//    if(_sbusCount == count)
+//        return;
+//    _sbusCount = count;
+//    emit sbusCountChanged();
+//}
 
 
 /* **********************************************************************
@@ -138,8 +110,7 @@ void RadioMemberBase::onSyncData()
 {
     int i = 0;
     if(_radioID.isEmpty()){
-//        queryRadioId();
-        i++;
+        queryRadioId(); i++;
     }
 
     if(i == 0) _syncDataTimer->stop(); //所有数据都已经存在，关闭定时器
@@ -147,37 +118,14 @@ void RadioMemberBase::onSyncData()
 
 void RadioMemberBase::queryRadioId()
 {
-    return;
     char type = 0x8f;
     char buff[1] = {0x01};
     emit _writeData(type, QByteArray(buff, 1));
 }
 
-void RadioMemberBase::vehicleConnectStatus(bool status)
-{
-    char type = 0x10;
-    char buff[1] = {0x01};
-    if(status)
-        buff[0] = 0x02;
-    emit _writeData(type, QByteArray(buff, 1));
-}
-
-void RadioMemberBase::vehicleEnergyStatus(bool status)
-{
-    char type = 0x11;
-    char buff[1] = {0x01};
-    if(status)
-        buff[0] = 0x02;
-    emit _writeData(type, QByteArray(buff, 1));
-}
-
 void RadioMemberBase::setCalirationState(bool isLeft)
 {
-#if defined(Q_OS_ANDROID)
-    char type = 0x02;
-#else
     char type = 0x2f;
-#endif
     char buff[1] = {L_MODE};
     if(!isLeft)
         buff[0] = R_MODE;
@@ -194,23 +142,76 @@ void RadioMemberBase::sendCheckStatus()
         set_checkStatus((CheckStatus)(checkState+1));
     }else{//不在取值范围
         return;
-    }  
-    char type = 0x04;
-//#if defined(Q_OS_ANDROID)
-//    char type = 0x04;
-//#else
-//    char type = 0x4f;
-//#endif
+    }
+    char type = 0x4f;
     char buff[1] = {checkStatus()};
-    qDebug() << "-------------------sendCheckStatus" << (uint8_t)type  <<QByteArray(buff, 1).toHex();
+    qDebug() << "-------------------sendCheckStatus" << type << QByteArray(buff, 1).toHex();
     emit _writeData(type, QByteArray(buff, 1));
 }
 
 void RadioMemberBase::rockerControl(int state)
 {
     if(state != 0 && state != 1) return;
-    char type = 0x6f;
+    if(state == _rockerState)
+        qDebug() << "---------- RadioMemberBase::rockerControl is same" << _rockerState;
+    char type = 0x7f;
     char buff[1] = {state};
 
     emit _writeData(type, QByteArray(buff, 1));
+}
+
+void RadioMemberBase::setRockerState(int state)
+{
+//    qDebug() << "-------RadioMemberBase::setRockerState" << state;
+    if(_rockerState == state)
+        return;
+    _rockerState = state;
+    emit rockerStateChanged(_rockerState);
+}
+
+void RadioMemberBase::setTeleControlType(int type)
+{
+//    qDebug() << "------RadioMemberBase::setTeleControlType" << type;
+    if(_teleControlType == type)
+        return;
+    _teleControlType = type;
+    emit teleControlTypeChanged();
+}
+
+//------------------------------------------------[分割线]----------------------------------------------------
+
+MMCKey::MMCKey(int id, QObject *parent) : QObject(parent), _id(id)
+{
+    timer = new QTimer(this);
+    timer->setInterval(100);
+    connect(timer, SIGNAL(timeout()), this, SLOT(onTimeOut()));
+}
+
+bool MMCKey::key()
+{
+    return _key;
+}
+
+void MMCKey::setKey(bool key)
+{
+    if(key == _key) return; 
+
+    _key = key;
+    emit keyChanged(_key);
+
+    if(_key){
+        emit press(this);
+        _accumulatedTime = 1;
+        timer->start();
+    }else{
+        emit upspring(this);
+        timer->stop();
+        if(_accumulatedTime  < 5) emit click(this);
+    }
+}
+
+void MMCKey::onTimeOut()
+{
+    _accumulatedTime++;
+    emit longPress(this);
 }
