@@ -117,6 +117,7 @@ private:
     void updateCropRatio();
 
     QMutex _mutex;
+    QMutex _flagMutex;
     VlcVideoFrame _frame;
 
     QRectF _geometry;
@@ -130,7 +131,7 @@ private:
 
     Vlc::Ratio _aspectRatio;
     Vlc::Ratio _cropRatio;
-
+    bool _updateFlag;
 };
 
 #endif // VLCQT_QMLVIDEOOBJECT_H_

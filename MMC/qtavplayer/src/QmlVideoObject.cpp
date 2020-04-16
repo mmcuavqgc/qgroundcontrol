@@ -38,7 +38,8 @@ VlcQmlVideoObject::VlcQmlVideoObject(QQuickItem *parent)
       _gotSize(false),
       _aspectRatio(Vlc::Original),
       _cropRatio(Vlc::Original),
-      _decoder(new AVDecoder)
+      _decoder(new AVDecoder) ,
+      _updateFlag(true)
 {
     setRenderTarget(InvertedYFramebufferObject);
     setFlag(ItemHasContents, true);
@@ -171,6 +172,7 @@ void VlcQmlVideoObject::paint(QPainter *painter)
     }
 //    _frame.inited = false;
     unlock();
+    _updateFlag = true;
 }
 
 void VlcQmlVideoObject::geometryChanged(const QRectF &newGeometry,
@@ -250,12 +252,15 @@ void VlcQmlVideoObject::unlockCallback()
 
     // To avoid thread polution do not call frameReady directly, but via the
     // event loop.
-    QMetaObject::invokeMethod(this, "frameReady", Qt::QueuedConnection);
+    if(_updateFlag) {
+        QMetaObject::invokeMethod(this, "frameReady", Qt::QueuedConnection);
+    }
 }
 
 void VlcQmlVideoObject::formatCleanUpCallback()
 {
     _frame.inited = false;
+    _updateFlag = true;
     // To avoid thread polution do not call reset directly but via the event loop.
     QMetaObject::invokeMethod(this, "reset", Qt::QueuedConnection);
 }

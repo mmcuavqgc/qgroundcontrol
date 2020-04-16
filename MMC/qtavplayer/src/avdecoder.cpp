@@ -117,10 +117,10 @@ AVDecoder::AVDecoder(QObject *parent) : QObject(parent), videoq(new PacketQueue)
     outUrl = ""; // "rtmp://192.168.5.138:1936/live/test";
     //    outUrl = MMCSettings::getvalue("video/rtmp/videoUrl", "").toString();
 
-    _fpsTimer = new QTimer(this);
-    _fpsTimer->setInterval(1000);
-    connect(_fpsTimer, &QTimer::timeout, this, &AVDecoder::onFpsTimeout);
-    _fpsTimer->start();
+//    _fpsTimer = new QTimer(this);
+//    _fpsTimer->setInterval(1000);
+//    connect(_fpsTimer, &QTimer::timeout, this, &AVDecoder::onFpsTimeout);
+//    _fpsTimer->start();
 
     _usbfifo = new usbfifo();
 
@@ -140,7 +140,7 @@ AVDecoder::AVDecoder(QObject *parent) : QObject(parent), videoq(new PacketQueue)
 AVDecoder::~AVDecoder()
 {
     QMutexLocker locker(&mDeleteMutex);
-    _fpsTimer->stop();
+//    _fpsTimer->stop();
     mProcessThread.stop();
     mDecodeThread.stop();
     mPlayeThread.stop();

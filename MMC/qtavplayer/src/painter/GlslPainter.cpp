@@ -186,6 +186,11 @@ void GlslPainter::paint(QPainter *painter,
         _glF->glBindTexture(GL_TEXTURE_2D, _textureIds[2]);
         _gl->glActiveTexture(GL_TEXTURE0);
 
+        _gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+        _gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        _gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        _gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
         _program->setUniformValue("texY", 0);
         _program->setUniformValue("texU", 1);
         _program->setUniformValue("texV", 2);
@@ -198,7 +203,7 @@ void GlslPainter::paint(QPainter *painter,
     _program->release();
     painter->endNativePainting();
 
-    calculateFPS();
+    //calculateFPS();
 }
 
 void GlslPainter::calculateFPS()
