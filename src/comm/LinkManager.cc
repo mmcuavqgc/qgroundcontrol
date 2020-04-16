@@ -89,6 +89,7 @@ void LinkManager::setToolbox(QGCToolbox *toolbox)
     connect(&_portListTimer, &QTimer::timeout, this, &LinkManager::_updateAutoConnectLinks);
 //    _portListTimer.start(_autoconnectUpdateTimerMSecs); // timeout must be long enough to get past bootloader on second pass
 #ifdef __mobile__
+    // ttysWK2
     SerialConfiguration* pSerialConfig = new SerialConfiguration("ttysWK2");
     if (pSerialConfig) {
         pSerialConfig->setBaud(115200);
@@ -97,7 +98,90 @@ void LinkManager::setToolbox(QGCToolbox *toolbox)
         _sharedAutoconnectConfigurations.append(SharedLinkConfigurationPointer(pSerialConfig));
         createConnectedLink(_sharedAutoconnectConfigurations.last(), false);
     }
+
+    // ttysWK0
+    SerialConfiguration* rtkserialConfig = new SerialConfiguration("ttysWK0");
+    if (rtkserialConfig) {
+        rtkserialConfig->setBaud(QSerialPort::Baud115200);
+        rtkserialConfig->setDataBits(QSerialPort::Data8);
+        rtkserialConfig->setDynamic(QSerialPort::NoParity);
+        rtkserialConfig->setStopBits(QSerialPort::OneStop);
+        rtkserialConfig->setFlowControl(QSerialPort::NoFlowControl);
+        rtkserialConfig->setPortName("ttysWK0");
+    }
+     SharedLinkConfigurationPointer tmpConfig = SharedLinkConfigurationPointer(rtkserialConfig);
+    _serialLink = new SerialLink(tmpConfig);
+    //create RTCM device
+    connect(_serialLink, &LinkInterface::bytesReceived, this, &LinkManager::_receiveRTKData);
+    connectLink(_serialLink);
 #endif
+}
+
+void LinkManager::_receiveRTKData(LinkInterface* link, QByteArray b)
+{
+#if 1
+//    qDebug() <<"---LinkManager::_receiveRTKData" << b.toHex();
+    const int maxMessageLength = MAVLINK_MSG_GPS_RTCM_DATA_FIELD_DATA_LEN;
+    mavlink_gps_rtcm_data_t mavlinkRtcmData;
+    memset(&mavlinkRtcmData, 0, sizeof(mavlink_gps_rtcm_data_t));
+
+    if (b.size() < maxMessageLength) {
+        mavlinkRtcmData.len = b.size();
+        mavlinkRtcmData.flags = (_sequenceId & 0x1F) << 3;
+        memcpy(&mavlinkRtcmData.data, b.data(), b.size());
+        sendMessageToVehicle(mavlinkRtcmData);
+    } else {
+        // We need to fragment
+        uint8_t fragmentId = 0;         // Fragment id indicates the fragment within a set
+        int start = 0;
+        while (start < b.size()) {
+            int length = std::min(b.size() - start, maxMessageLength);
+            mavlinkRtcmData.flags = 1;                      // LSB set indicates message is fragmented
+            mavlinkRtcmData.flags |= fragmentId++ << 1;     // Next 2 bits are fragment id
+            mavlinkRtcmData.flags |= (_sequenceId & 0x1F) << 3;     // Next 5 bits are sequence id
+            mavlinkRtcmData.len = length;
+            memcpy(&mavlinkRtcmData.data, b.data() + start, length);
+            sendMessageToVehicle(mavlinkRtcmData);
+            start += length;
+        }
+    }
+     ++_sequenceId;
+#endif
+}
+
+void LinkManager::sendMessageToVehicle(const mavlink_gps_rtcm_data_t& msg)
+{
+    qDebug() << "------------RTCMMavlink::sendMessageToVehicle" << msg.len;
+
+//    QmlObjectListModel& vehicles = *_toolbox->multiVehicleManager()->vehicles();
+//    MAVLinkProtocol* mavlinkProtocol = _toolbox->mavlinkProtocol();
+//    for (int i = 0; i < vehicles.count(); i++) {
+//        Vehicle* vehicle = qobject_cast<Vehicle*>(vehicles[i]);
+//        mavlink_message_t message;
+//        mavlink_msg_gps_rtcm_data_encode_chan(mavlinkProtocol->getSystemId(),
+//                                              mavlinkProtocol->getComponentId(),
+//                                              vehicle->priorityLink()->mavlinkChannel(),
+//                                              &message,
+//                                              &msg);
+//        vehicle->sendMessageOnLink(vehicle->priorityLink(), message);
+//    }
+
+#if 1
+    if(_toolbox->multiVehicleManager()->activeVehicle())
+    {
+        mavlink_message_t message;
+        qDebug()<< msg.len << QByteArray((char *)msg.data,msg.len).toHex();
+
+        mavlink_msg_gps_rtcm_data_encode_chan(_mavlinkProtocol->getSystemId(),
+                                              _mavlinkProtocol->getComponentId(),
+                                              _toolbox->multiVehicleManager()->activeVehicle()->priorityLink()->mavlinkChannel(),
+                                              &message,
+                                              &msg);
+        _toolbox->multiVehicleManager()->activeVehicle()->sendMessageOnLink(_toolbox->multiVehicleManager()->activeVehicle()->priorityLink(),
+                                                                            message);
+    }
+#endif
+
 }
 
 // This should only be used by Qml code

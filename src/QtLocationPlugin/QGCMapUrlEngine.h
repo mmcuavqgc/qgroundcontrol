@@ -51,6 +51,10 @@ public:
         BingSatellite           = 555,
         BingHybrid              = 666,
 
+        GoogleChinaMap          = 450,
+        GoogleChinaSatellite    = 451,
+        GoogleChinaHybrid       = 452,
+
         /*
         MapQuestMap             = 700,
         MapQuestSat             = 701,

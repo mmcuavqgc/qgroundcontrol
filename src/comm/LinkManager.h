@@ -191,6 +191,7 @@ private slots:
 #ifndef NO_SERIAL_LINK
     void _activeLinkCheck(void);
 #endif
+    void _receiveRTKData(LinkInterface* link, QByteArray b);
 
 private:
     QmlObjectListModel* _qmlLinkConfigurations  (void) { return &_qmlConfigurations; }
@@ -199,6 +200,8 @@ private:
     void _updateSerialPorts();
     void _fixUnnamed(LinkConfiguration* config);
     void _removeConfiguration(LinkConfiguration* config);
+
+    void sendMessageToVehicle(const mavlink_gps_rtcm_data_t& msg);
 
 #ifndef NO_SERIAL_LINK
     SerialConfiguration* _autoconnectConfigurationsContainsPort(const QString& portName);
@@ -227,6 +230,9 @@ private:
     QStringList _commPortDisplayList;
 
     QSerialPort* _serial;
+
+    SerialLink* _serialLink;
+    uint8_t _sequenceId = 0;
 
 #ifndef NO_SERIAL_LINK
     QTimer              _activeLinkCheckTimer;                  ///< Timer which checks for a vehicle showing up on a usb direct link

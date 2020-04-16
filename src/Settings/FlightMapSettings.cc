@@ -105,6 +105,8 @@ void FlightMapSettings::_newMapProvider(QVariant value)
     case mapProviderVWorld:
         _removeEnumValue(mapTypeHybrid, enumStrings, enumValues);
         _removeEnumValue(mapTypeTerrain, enumStrings, enumValues);
+    case mapProviderGoogleChina:
+        _removeEnumValue(mapTypeTerrain, enumStrings, enumValues);
     }
     metaData->setEnumInfo(enumStrings, enumValues);
     emit mapTypeChanged();
