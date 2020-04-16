@@ -111,11 +111,6 @@ Task *AVThread::getTask(){
 
 void AVThread::run(){
     mIsRunning = true;
-//    SYSTEM_INFO info;
-//    GetSystemInfo(&info);
-//    if(info.dwNumberOfProcessors == 4)
-//        SetThreadAffinityMask(currentThread(), 0x08);
-
     while(mIsRunning){
         Task * task = getTask();
         if(task == NULL){
@@ -124,6 +119,6 @@ void AVThread::run(){
             task->run();
             delete task;
         }
-        QThread::usleep(10);
+        QThread::usleep(30);
     }
 }
