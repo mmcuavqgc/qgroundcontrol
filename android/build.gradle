@@ -1,13 +1,10 @@
 buildscript {
-
     repositories {
-        maven  {
-            url "http://repo1.maven.org/maven2"
-        }
+        jcenter()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.0'
+        classpath 'com.android.tools.build:gradle:2.2.3'
     }
 }
 
@@ -52,10 +49,6 @@ android {
             assets.srcDirs = ['assets']
             jniLibs.srcDirs = ['libs']
        }
-    }
-
-    aaptOptions {
-        cruncherEnabled = false
     }
 
     lintOptions {

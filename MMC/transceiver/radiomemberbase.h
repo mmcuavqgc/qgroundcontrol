@@ -17,7 +17,7 @@ public:
     /* 校准后的通道 1-4 */
     MMC_GENERATE_QML_PROPERTY(channel1,  int, "Roll")
     MMC_GENERATE_QML_PROPERTY(channel2,  int, "Pich")
-    MMC_GENERATE_QML_PROPERTY(channel3,  int, "Accelerator")
+    MMC_GENERATE_QML_PROPERTY(channel3,  int, "Throttle")
     MMC_GENERATE_QML_PROPERTY(channel4,  int, "Yaw")
     MMC_GENERATE_QML_PROPERTY(channel5,  int, "M-A-P")
     MMC_GENERATE_QML_PROPERTY(channel6,  int, "F1")
@@ -112,7 +112,7 @@ public:
     QString radioID  (){return _radioID; }
     void setRadioID(QString id);
     /* 设置版本号 */
-    void setVer(uchar* buff);
+    void setVer(uint32_t version);
 
     /* 下发操作 */
     void queryRadioId();          //查询单片机唯一ID
@@ -154,10 +154,10 @@ class RadioMemberBase : public QObject
     MMC_GENERATE_QML_PROPERTY(channelBMax2, int, "channelBMax2")
     MMC_GENERATE_QML_PROPERTY(channelBMax3, int, "channelBMax3")
     MMC_GENERATE_QML_PROPERTY(channelBMax4, int, "channelBMax4")
-    MMC_GENERATE_QML_PROPERTY(channelBMed1, int, "channelBMed1")
-    MMC_GENERATE_QML_PROPERTY(channelBMed2, int, "channelBMed2")
-    MMC_GENERATE_QML_PROPERTY(channelBMed3, int, "channelBMed3")
-    MMC_GENERATE_QML_PROPERTY(channelBMed4, int, "channelBMed4")
+    MMC_GENERATE_QML_PROPERTY(channelBMid1, int, "channelBMid1")
+    MMC_GENERATE_QML_PROPERTY(channelBMid2, int, "channelBMid2")
+    MMC_GENERATE_QML_PROPERTY(channelBMid3, int, "channelBMid3")
+    MMC_GENERATE_QML_PROPERTY(channelBMid4, int, "channelBMid4")
     MMC_GENERATE_QML_PROPERTY(channelBMin1, int, "channelBMin1")
     MMC_GENERATE_QML_PROPERTY(channelBMin2, int, "channelBMin2")
     MMC_GENERATE_QML_PROPERTY(channelBMin3, int, "channelBMin3")

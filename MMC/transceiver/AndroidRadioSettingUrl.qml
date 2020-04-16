@@ -47,7 +47,7 @@ QGCView /*Rectangle*/ {
     property var fpvMember: QGroundControl.transceiverManager.fpvMember
 
     property var  _activeVehicle: QGroundControl.multiVehicleManager.activeVehicle
-    property bool vehicleArmed:                 _activeVehicle ? _activeVehicle.armed : false
+    property bool vehicleArmed: _activeVehicle ? _activeVehicle.armed : false
 
     QGCPalette { id: qgcPal }
 
@@ -55,8 +55,16 @@ QGCView /*Rectangle*/ {
     Component {
         id:         monitorColumn
         Item{
-            property alias channel : theItem.rcValue
-            property alias text: channelLabel.text
+            property int channel: theItem.rcValue
+            property string text: channelLabel.text
+            onChannelChanged: {
+                theItem.rcValue = channel
+            }
+            onTextChanged: {
+                if(channelLabel.text == "")
+                    channelLabel.text = text
+            }
+
             Row {
                 anchors.fill: parent
                 QGCLabel {
@@ -65,9 +73,9 @@ QGCView /*Rectangle*/ {
                 }
                 Item {
                     id:                     theItem
-                    anchors.leftMargin:     10
-                    anchors.left:           channelLabel.right
-                    anchors.verticalCenter: channelLabel.verticalCenter
+//                    anchors.leftMargin:     10
+//                    anchors.left:           channelLabel.right
+//                    anchors.verticalCenter: parent.verticalCenter
                     height:                 parent.height
                     width:                  parent.width - channelLabel.width
                     property bool mapped:               true
@@ -180,18 +188,18 @@ QGCView /*Rectangle*/ {
                                 /* 遥控器模式，左手模式或者右手模式 */
                                 /* 遥控器校准状态 */
                                 /* 版本号 */
-                                QGCLabel { text: radioMember.chargeStateComment + ": " +  radioMember.chargeState }
-                                QGCLabel { text: "voltage: " + radioMember.voltage }
-                                QGCLabel { text: "energy: " + radioMember.energy }
-                                QGCLabel { text: radioMember.timeComment + ": " +  radioMember.time }
-                                QGCLabel { text: radioMember.stateOfHealthComment + ": " +  radioMember.stateOfHealth }
-                                QGCLabel { text: radioMember.temperatureComment + ": " +  radioMember.temperature }
+                                QGCLabel { text: radioMember.chargeStateComment + ": " +  (radioMember.chargeState === 1 ? qsTr("Charging") : qsTr("Not Charging")) }
+                                QGCLabel { text: "voltage: " + radioMember.voltage.toFixed(1) + "V"}
+                                QGCLabel { text: "energy: " + radioMember.energy.toFixed(1) + "%"}
+                                QGCLabel { text: radioMember.timeComment + ": " +  radioMember.time.toFixed(1) + "h"}
+//                                QGCLabel { text: radioMember.stateOfHealthComment + ": " +  radioMember.stateOfHealth }
+//                                QGCLabel { text: radioMember.temperatureComment + ": " +  radioMember.temperature }
                                 //                                QGCLabel { text: radioMember.rockerStateComment + ": " +  radioMember.rockerState }
-                                QGCLabel { text: radioMember.rcModeComment + ": " +  radioMember.rcMode }
+//                                QGCLabel { text: radioMember.rcModeComment + ": " +  radioMember.rcMode }
                                 QGCLabel { text: radioMember.calirationStateComment + ": " +  radioMember.calirationState }
 
                                 QGCLabel { text: radioMember.verComment + ": " +  radioMember.ver }
-
+                                QGCLabel { text: radioMember.checkStatusComment + ": " +  radioMember.checkStatus }
                                 Row{
                                     visible:  !vehicleArmed
                                     spacing:  20
@@ -201,7 +209,7 @@ QGCView /*Rectangle*/ {
                                         text:               qsTr("Left Model", "左手模式")
                                         checked:            radioMember.rcMode === 0x05
                                         onClicked: {
-                                            console.log("--------------------Left Model")
+//                                            console.log("--------------------Left Model")
                                             if(checked)
                                                 radioMember.setCalirationState(true)
                                         }
@@ -212,7 +220,7 @@ QGCView /*Rectangle*/ {
                                         text:               qsTr("Right Model", "右手模式")
                                         checked:            radioMember.rcMode === 0x0A
                                         onClicked: {
-                                            console.log("--------------------Right Model")
+//                                            console.log("--------------------Right Model")
                                             if(checked)
                                                 radioMember.setCalirationState(false)
                                         }
@@ -233,6 +241,7 @@ QGCView /*Rectangle*/ {
                                             }
                                         }
                                         QGCLabel {
+                                            anchors.verticalCenter: parent.verticalCenter
                                             text: radioMember.calirationState ? qsTr("(OK)", "(已校准)") : qsTr("(NG)", "(未校准)")
                                             color : radioMember.calirationState ? "#0f0" : "#f00"
                                         }
@@ -304,7 +313,9 @@ QGCView /*Rectangle*/ {
                                     height:                 20
                                     width:                  500
                                     sourceComponent:        monitorColumn
-                                    onChannelChanged: item.channel = channel
+                                    onChannelChanged: {
+                                        item.channel = channel
+                                    }
                                     Component.onCompleted: {
                                         item.text = radioMember.channel1Comment
                                         item.channel = channel

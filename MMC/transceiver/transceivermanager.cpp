@@ -35,8 +35,7 @@ void TransceiverManager::connectRadio(const QString &device)
     connect(_radioMember, SIGNAL(_writeData(char,QByteArray)), _radioProvider,
             SLOT(writeData(char,QByteArray)));
     connect(_radioProvider, &RadioProvider::closeSerialSignals, _radioProvider, &RadioProvider::closeSerialSlot,Qt::DirectConnection); //为在主线程关闭串口
-    connect(_radioProvider, &RadioProvider::isconnectChanged, _radioMember, &RadioMember::setRadioLock); //在线状态
-
+    connect(_radioProvider, &RadioProvider::isconnectChanged, _radioMember, &RadioMemberBase::setRadioLock); //在线状态
     _radioProvider->_start();
 
 }
@@ -47,11 +46,16 @@ void TransceiverManager::setToolbox(QGCToolbox *toolbox)
 
     QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
     qmlRegisterUncreatableType<TransceiverManager>("QGroundControl.TransceiverManager", 1, 0, "TransceiverManager", "Reference only");
+#if defined(Q_OS_ANDROID)
+    qmlRegisterUncreatableType<AndroidRaduiMember>("QGroundControl.TransceiverManager",   1, 0, "RadioMember",            "Reference only");
+#else
     qmlRegisterUncreatableType<RadioMember>("QGroundControl.TransceiverManager",   1, 0, "RadioMember",            "Reference only");
+#endif
 }
 
 void TransceiverManager::onStartTimer()
 {
+//    qDebug() << "----TransceiverManager::onStartTimer()";
     //    _serialLostTimer->start();
     connectRadio("ttysWK1");
 }

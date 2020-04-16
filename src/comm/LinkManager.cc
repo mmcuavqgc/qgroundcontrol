@@ -984,7 +984,11 @@ void LinkManager::_removeConfiguration(LinkConfiguration* config)
 QList<LinkInterface*> LinkManager::links(void)
 {
     QList<LinkInterface*> rawLinks;
-    for (int i=1; i<_sharedLinks.count(); i++) {
+    int startIndex=-0;
+#ifndef Q_OS_ANDROID
+    startIndex = 1;
+#endif
+    for (int i=startIndex; i<_sharedLinks.count(); i++) {
         rawLinks.append(_sharedLinks[i].data());
     }
     return rawLinks;

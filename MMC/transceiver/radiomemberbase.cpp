@@ -28,11 +28,13 @@ RadioMemberBase::RadioMemberBase(QObject *parent)
     , _channelBMin2(0)
     , _channelBMin3(0)
     , _channelBMin4(0)
-    , _channelBMed1(0)
-    , _channelBMed2(0)
-    , _channelBMed3(0)
-    , _channelBMed4(0)
+    , _channelBMid1(0)
+    , _channelBMid2(0)
+    , _channelBMid3(0)
+    , _channelBMid4(0)
+#if defined(Q_OS_WIN)
     , _teleControlType(0)
+#endif
 //    , _sbusCount(0)
 {
     /* 同步电台需要主动获取数据的计时器 */
@@ -61,10 +63,11 @@ void RadioMemberBase::setRadioLock(bool ck)
     if(_radioLock == lock) return;
     _radioLock = lock;
     emit radioLockChanged();
-
+#ifndef Q_OS_ANDROID
     if(lock){ //串口上线时
         _syncDataTimer->start();
     }
+#endif
 }
 
 void RadioMemberBase::setVer(uint32_t version)
@@ -125,7 +128,11 @@ void RadioMemberBase::queryRadioId()
 
 void RadioMemberBase::setCalirationState(bool isLeft)
 {
+#if defined(Q_OS_WIN)
     char type = 0x2f;
+#elif defined(Q_OS_ANDROID)
+    char type = 0x02;
+#endif
     char buff[1] = {L_MODE};
     if(!isLeft)
         buff[0] = R_MODE;
@@ -143,7 +150,11 @@ void RadioMemberBase::sendCheckStatus()
     }else{//不在取值范围
         return;
     }
+#if defined(Q_OS_WIN)
     char type = 0x4f;
+#elif defined(Q_OS_ANDROID)
+    char type = 0x04;
+#endif
     char buff[1] = {checkStatus()};
     qDebug() << "-------------------sendCheckStatus" << type << QByteArray(buff, 1).toHex();
     emit _writeData(type, QByteArray(buff, 1));
@@ -159,7 +170,7 @@ void RadioMemberBase::rockerControl(int state)
 
     emit _writeData(type, QByteArray(buff, 1));
 }
-
+#if defined(Q_OS_WIN)
 void RadioMemberBase::setRockerState(int state)
 {
 //    qDebug() << "-------RadioMemberBase::setRockerState" << state;
@@ -177,7 +188,7 @@ void RadioMemberBase::setTeleControlType(int type)
     _teleControlType = type;
     emit teleControlTypeChanged();
 }
-
+#endif
 //------------------------------------------------[分割线]----------------------------------------------------
 
 MMCKey::MMCKey(int id, QObject *parent) : QObject(parent), _id(id)

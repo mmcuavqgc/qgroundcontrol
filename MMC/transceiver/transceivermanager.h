@@ -3,11 +3,13 @@
 
 #pragma once
 
-#include "radiomember.h"
 #include "radioprovider.h"
 #if defined(Q_OS_ANDROID)
 #include "androidraduimember.h"
+#else
+#include "radiomember.h"
 #endif
+
 #include "../fpv/fpvmember.h"
 
 #include <QGCToolbox.h>

@@ -13,7 +13,6 @@ RadioProvider::RadioProvider(const QString &device)
     , _findDevideName("")
 {
     moveToThread(this);
-
     _openSerialTimer = new QTimer();
     _openSerialTimer->setInterval(1000);
 //    _openSerialTimer->setSingleShot(true);
@@ -150,16 +149,20 @@ int RadioProvider::openSerial(QString name)
         writeData(type, QByteArray(buff, 1));
     }
 
-    qDebug() << "=======================================openSerial" << name;
+//    qDebug() << "=======================================openSerial" << name;
     result = 0;
     return 0;
 }
 
 void RadioProvider::openSerialSlot()
 {
-    //    qDebug() << "------------------------openSerialSlot" << GetCurrentThreadId();
+//    qDebug() << "------------------------openSerialSlot" << _findDevice;
 //    if(!_findDevice)
+#if defined(Q_OS_ANDROID)
+    _findDevice = true; // android serial is fixed; do not need find device;
+#else
     findDevice();
+#endif
     if (!_isconnect && _findDevice){ //没上线
 #if defined(Q_OS_ANDROID)
     openSerial("ttysWK1");
@@ -208,7 +211,11 @@ void RadioProvider::analysisPack(QByteArray buff)
             }
             _isconnect = true; //重置标志位
             _openSerialTimer->stop();
+#if defined(Q_OS_ANDROID)
+            emit RTCMDataUpdate(tmpData[3], QByteArray((char*)&tmpData[5], tmpData[4]));
+#else
             emit RTCMDataUpdate(tmpData[2], QByteArray((char*)&tmpData[4], tmpData[3]));
+#endif
         }
     }
 }
@@ -218,7 +225,7 @@ int RadioProvider::splicePacket(const uint8_t data, uint8_t *dst)
     static bool packeting = false;
     static QList<uint8_t> packList;
 
-    // 05 5A type len check data
+    // 5A type len check data
     if(packeting)
     {
         if(packList.count() == 1 && data != 0xA5){ //判断第二个字节
@@ -227,6 +234,23 @@ int RadioProvider::splicePacket(const uint8_t data, uint8_t *dst)
         }
 
         packList.append(data);
+#if defined(Q_OS_ANDROID)
+        if(packList.count() < 6) return -1;
+        // 长度为数据段长度，去掉头，类型，长度，校验，6；
+        if(packList.count() > 6 && packList.at(4)+6 <= packList.count())
+        {
+            packeting = false;
+            uint8_t tmpData[255]={0};
+            for(int i=0; i < packList.at(4) + 6; i++)
+                tmpData[i] = packList.at(i);
+            uint8_t check = MMC::_crc8(&tmpData[3], tmpData[4] + 2);
+//            qDebug() << "----MMC::_crc8" << check << packList.at(packList.count() - 1) << packList;
+            if(check != packList.at(packList.count() - 1)) //crc
+                return -1;
+            memcpy(dst, &tmpData[0], tmpData[4] + 6);
+            return tmpData[4];
+        }
+#else
         if(packList.count() < 5) return -1;
         // 长度为数据段长度，去掉头，类型，长度，校验，5；
         if(packList.count() > 5 && packList.at(3)+5 <= packList.count())
@@ -235,19 +259,13 @@ int RadioProvider::splicePacket(const uint8_t data, uint8_t *dst)
             uint8_t tmpData[255]={0};
             for(int i=0; i < packList.at(3) + 5; i++)
                 tmpData[i] = packList.at(i);
-#if defined(Q_OS_ANDROID)
-            uint8_t check = MMC::_xor8(&tmpData[5], tmpData[3]);
-#else
             uint8_t check = MMC::_crc8(&tmpData[2], tmpData[3] + 2);
-#endif
-//            qDebug() << "----MMC::_crc8" << check << packList.at(packList.count() - 1) << packList;
             if(check != packList.at(packList.count() - 1)) //crc
                 return -1;
             memcpy(dst, &tmpData[0], tmpData[3] + 5);
-//            qDebug() << "----------packList" << packList << tmpData[4];
-//            qDebug() << "-----pack length" << tmpData[3];
             return tmpData[3];
         }
+#endif
     }
     else if(!packeting && data == 0x5A)
     {
@@ -263,13 +281,22 @@ int RadioProvider::_writeData(char type, QByteArray buff)
     uint8_t len = buff.length();
     uint8_t fileData[256] = {0};
     uint8_t* buf = fileData;
+    static uint8_t index = 0;
     *buf++ = 0x5A;   //--头
     *buf++ = 0xA5;   //--id
+#if defined(Q_OS_ANDROID)
+    *buf++ = index++;   //--index
+#endif
     *buf++ = type;   //--type
     *buf++ = len;   //--len
     memcpy(buf, buff.data(), len); //data
     buf += len;
+#if defined(Q_OS_ANDROID)
+    *buf++ = MMC::_crc8(&fileData[3], len + 2);   //--check - CRC 校验长度为实际长度加上类型和长度两个字节
+    return _serial->write((char*)fileData, len + 6);
+#else
     *buf++ = MMC::_crc8(&fileData[2], len + 2);   //--check - CRC 校验长度为实际长度加上类型和长度两个字节
-    qDebug() << "------------------RadioProvider::_writeData" << len  << QByteArray((char*)fileData, len + 5).toHex();
+//    qDebug() << "------------------RadioProvider::_writeData" << len  << QByteArray((char*)fileData, len + 5).toHex();
     return _serial->write((char*)fileData, len + 5);
+#endif
 }

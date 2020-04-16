@@ -234,10 +234,10 @@ void RadioMember::analysisPack(int type, QByteArray msg)
         this->set_channelBMax3(calirData.maxChannel3);
         this->set_channelBMax4(calirData.maxChannel4);
 
-        this->set_channelBMed1(calirData.midChannel1);
-        this->set_channelBMed2(calirData.midChannel2);
-        this->set_channelBMed3(calirData.midChannel3);
-        this->set_channelBMed4(calirData.midChannel4);
+        this->set_channelBMid1(calirData.midChannel1);
+        this->set_channelBMid2(calirData.midChannel2);
+        this->set_channelBMid3(calirData.midChannel3);
+        this->set_channelBMid4(calirData.midChannel4);
 
         this->set_channelBMin1(calirData.minChannel1);
         this->set_channelBMin2(calirData.minChannel2);

@@ -243,7 +243,7 @@ Item{
             QGCLabel {
                 horizontalAlignment:    Text.AlignHCenter
                 verticalAlignment:      Text.AlignVCenter
-                text:                   "Mid[" + radioMember.channelBMed1 +", " + radioMember.channelBMed2 +", " + radioMember.channelBMed3 +", " + radioMember.channelBMed4 + " ]"
+                text:                   "Mid[" + radioMember.channelBMid1 +", " + radioMember.channelBMid2 +", " + radioMember.channelBMid3 +", " + radioMember.channelBMid4 + " ]"
             }
 
             QGCLabel {

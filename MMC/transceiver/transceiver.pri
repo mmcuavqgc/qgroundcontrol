@@ -7,16 +7,23 @@ RESOURCES += \
 HEADERS += \
     $$PWD/transceivermanager.h \
     $$PWD/radioprovider.h \
-    $$PWD/radiomember.h \
-    $$PWD/radiomemberbase.h \
-    $$PWD/androidraduimember.h
+    $$PWD/radiomemberbase.h
 
 SOURCES += \
     $$PWD/transceivermanager.cpp \
     $$PWD/radioprovider.cpp \
-    $$PWD/radiomember.cpp \
-    $$PWD/radiomemberbase.cpp \
-    $$PWD/androidraduimember.cpp
+    $$PWD/radiomemberbase.cpp
 
 
-
+WindowsBuild {
+    HEADERS += \
+        $$PWD/radiomember.h
+    SOURCES += \
+        $$PWD/radiomember.cpp
+}
+AndroidBuild {
+    HEADERS += \
+        $$PWD/androidraduimember.h
+    SOURCES += \
+        $$PWD/androidraduimember.cpp
+}
