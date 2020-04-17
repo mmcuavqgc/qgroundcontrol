@@ -361,7 +361,7 @@ void MultiVehicleManager::_sendGCSHeartbeat(void)
 {
     // Send a heartbeat out on each link
     LinkManager* linkMgr = _toolbox->linkManager();
-    qDebug() << "---MultiVehicleManager::_sendGCSHeartbeat" << linkMgr->links().count();
+//    qDebug() << "---MultiVehicleManager::_sendGCSHeartbeat" << linkMgr->links().count();
     for (int i=0; i<linkMgr->links().count(); i++) {
         LinkInterface* link = linkMgr->links()[i];
         if (link->isConnected() && !link->highLatency()) {

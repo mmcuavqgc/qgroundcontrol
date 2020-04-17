@@ -57,6 +57,13 @@ UrlFactory::UrlFactory()
     _versionGoogleLabels         = "h@336";
     _versionGoogleTerrain        = "t@354,r@354000000";
     _secGoogleWord               = "Galileo";
+
+    // Google.cn Version Different with Google.com By:Yee 2020.4.5
+//    _versionGoogleMap            = "m@218";
+//    _versionGoogleSatellite      = "s@165";
+//    _versionGoogleLabels         = "h@336";
+//    _versionGoogleTerrain        = "t@131,r@218";
+//    _secGoogleWord               = "Galileo";
 #endif
     // BingMaps
     _versionBingMaps             = "563";
