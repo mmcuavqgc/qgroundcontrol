@@ -57,20 +57,36 @@ QGCView /*Rectangle*/ {
         Item{
             property int channel: theItem.rcValue
             property string text: channelLabel.text
+            property string channelNum:channelId.text
             onChannelChanged: {
                 theItem.rcValue = channel
             }
             onTextChanged: {
-                if(channelLabel.text == "")
+                console.log(text)
+                if(channelLabel.text === "")
                     channelLabel.text = text
+            }
+            onChannelNumChanged: {
+                console.log(channelNum)
+                // check the channel is signal
+                if(channelId.text === "")
+                    channelId.text = channelNum
             }
 
             Row {
                 anchors.fill: parent
+
                 QGCLabel {
                     id:     channelLabel
                     width:  parent.width * 0.3
                 }
+
+                // Channel Id
+                QGCLabel {
+                    id: channelId
+                    width: parent.width * 0.2
+                }
+
                 Item {
                     id:                     theItem
 //                    anchors.leftMargin:     10
@@ -131,6 +147,21 @@ QGCView /*Rectangle*/ {
                         to:         theItem.__barColor
                         duration:   1500
                     }
+                }
+
+                // Channel Select
+                QGCComboBox {
+                    id:             modeChannelCombo
+                    height: parent.height
+//                    visible:
+                    width:          ScreenTools.defaultFontPixelWidth * 15
+                    model:          [ qsTr("Not assigned"), qsTr("Channel 1"), qsTr("Channel 2"),
+                        qsTr("Channel 3"),    qsTr("Channel 4"), qsTr("Channel 5"),
+                        qsTr("Channel 6"),    qsTr("Channel 7"), qsTr("Channel 8") ]
+                    currentIndex:   0//_fltmodeCh.value
+                    onActivated:    {
+                        console.log(index)
+                    } //_fltmodeCh.value = index
                 }
             }
         }
@@ -305,6 +336,7 @@ QGCView /*Rectangle*/ {
                                 }
                             }
 
+                            // Channel Monitor Column
                             Column {
                                 spacing:    10
                                 QGCLabel { text: qsTr("Channel Monitor") }
@@ -319,6 +351,7 @@ QGCView /*Rectangle*/ {
                                     Component.onCompleted: {
                                         item.text = radioMember.channel1Comment
                                         item.channel = channel
+                                        item.channelNum = "channel 1"
                                     }
                                 }
 
@@ -331,6 +364,8 @@ QGCView /*Rectangle*/ {
                                     Component.onCompleted: {
                                         item.text = radioMember.channel2Comment
                                         item.channel = channel
+                                        item.channelNum = "channel 2"
+
                                     }
                                 }
 
@@ -343,6 +378,8 @@ QGCView /*Rectangle*/ {
                                     Component.onCompleted: {
                                         item.text = radioMember.channel3Comment
                                         item.channel = channel
+                                        item.channelNum = "channel 3"
+
                                     }
                                 }
 
@@ -355,6 +392,8 @@ QGCView /*Rectangle*/ {
                                     Component.onCompleted: {
                                         item.text = radioMember.channel4Comment
                                         item.channel = channel
+                                        item.channelNum = "channel 4"
+
                                     }
                                 }
 
@@ -367,6 +406,8 @@ QGCView /*Rectangle*/ {
                                     Component.onCompleted: {
                                         item.text = radioMember.channel5Comment
                                         item.channel = channel
+                                        item.channelNum = "channel 5"
+
                                     }
                                 }
 
@@ -379,6 +420,7 @@ QGCView /*Rectangle*/ {
                                     Component.onCompleted: {
                                         item.text = radioMember.channel6Comment
                                         item.channel = channel
+                                        item.channelNum = "channel 6"
                                     }
                                 }
 

@@ -62,6 +62,7 @@ void TransceiverManager::onStartTimer()
 
 void TransceiverManager::RTCMDataUpdate(int type, QByteArray msg)
 {
+    qDebug()<< __FUNCTION__;
     _radioMember->analysisPack(type, msg);
 }
 

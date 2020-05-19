@@ -217,12 +217,10 @@ void RadioMember::analysisPack(int type, QByteArray msg)
     }
     case 0x4F:{  //遥控器校准时各通道值
         this->set_checkStatus(*buff++);
-        //        qDebug() << "---------------------- RadioMember::analysisPack" << type << msg.toHex();
         qDebug() << "-----set_checkStatus" << checkStatus();
         break;
     }
     case 0x5F:{  //遥控器校准时各通道值
-        //        qDebug() << "---------------------- RadioMember::analysisPack" << type << msg.toHex();
         calirate_data calirData;
         memcpy(&calirData, (uchar*)msg.data(), msg.length());
         //        qDebug() << "------------calirate data:"

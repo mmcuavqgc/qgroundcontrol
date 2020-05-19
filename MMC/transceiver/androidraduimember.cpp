@@ -9,6 +9,8 @@ AndroidRaduiMember::AndroidRaduiMember(QObject *parent)
 
 void AndroidRaduiMember::analysisPack(int type, QByteArray msg)
 {
+//    qDebug()<< __FUNCTION__ <<__LINE__ << type << msg<< msg.data();
+
     uchar* buff = (uchar*)msg.data();
     int len = msg.length();
 //    ushort tep = 0;
@@ -34,7 +36,7 @@ void AndroidRaduiMember::analysisPack(int type, QByteArray msg)
         if(len != 32) break;
         channels_data channelData;
         memcpy(&channelData, buff, len);
-//        qDebug() << "-----channels_data" << channelData.channels[13];
+        qDebug() << __FUNCTION__ << __LINE__ << channelData.channels[13];
         this->set_channel1(channelData.channels[0]);
         this->set_channel2(channelData.channels[1]);
         this->set_channel3(channelData.channels[2]);
@@ -87,6 +89,12 @@ void AndroidRaduiMember::analysisPack(int type, QByteArray msg)
         this->set_channelBVer7(caliData.channel7_current);
         this->set_channelBVer8(caliData.channel8_current);
         break;
+    }
+    case 0x06:{
+        qDebug()<< __FUNCTION__ <<__LINE__ <<len;
+        if(len != 5) break;
+        channels_data channelData;
+        memcpy(&channelData, buff, len);
     }
     case 0x08:{  //单片机唯一ID
         this->setRadioID(QByteArray((char*)buff, 12));
