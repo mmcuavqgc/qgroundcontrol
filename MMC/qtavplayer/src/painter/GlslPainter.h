@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
 * VLC-Qt - Qt and libvlc connector library
 * Copyright (C) 2013 Tadej Novak <tadej@tano.si>
 *
@@ -63,6 +63,9 @@ private:
     };
 
     struct FPS _fps;
+
+    bool stencilTestEnabled = false;
+    bool scissorTestEnabled = false;
 };
 
 #endif // VLCQT_PHONON_GLSLPAINTER_H_

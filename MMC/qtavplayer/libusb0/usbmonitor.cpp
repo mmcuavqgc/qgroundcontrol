@@ -1,4 +1,4 @@
-#include "usbmonitor.h"
+﻿#include "usbmonitor.h"
 #include <stdio.h>
 #include <tchar.h>
 #include "lusb0_usb.h"
@@ -16,7 +16,7 @@ using namespace std;
 const _TCHAR CLASS_NAME[]  = _T("Monitor Class");
 
 PDEV_BROADCAST_DEVICEINTERFACE onpDevInf;
-WPARAM onwParam;
+WPARAM  onwParam;
 HWND hWnd; 
 HDCOMD iHDCOMD;
 #define THRD_MESSAGE_EXIT WM_USER + 1

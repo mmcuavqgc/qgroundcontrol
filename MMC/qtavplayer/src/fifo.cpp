@@ -50,7 +50,7 @@ void usbfifo::write(unsigned char *buf, int length)
 
 int usbfifo::read(unsigned char *buf)
 {
-//     qDebug() << "-------------------------usbfifo::read" << _buffQurue->size();
+//    qDebug() << "-------------------------usbfifo::read222" << _buffQurue->size();
     if(_buffQurue->size() < 1)
         return -1;
     _usbByteMutex.lock();
@@ -71,9 +71,9 @@ void usbfifo::clear()
     for(int i = 0; i < size; i++){
         _usbByteMutex.lock();
         QByteArray* buff = _buffQurue->get();
-        _usbByteMutex.unlock();
         buff->clear();
         delete buff;
+        _usbByteMutex.unlock();
     }
 }
 

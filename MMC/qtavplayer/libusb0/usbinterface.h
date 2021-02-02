@@ -1,17 +1,17 @@
-#ifndef USBINTERFACE_H
+﻿#ifndef USBINTERFACE_H
 #define USBINTERFACE_H
 #include <QObject>
 #include <QMutex>
 //#include "artosynplayer.h"
 
-#include "libusb.h"
-//#include "fifo.h"
-#include "../src/fifo.h"
-#include "../src/AVThread.h"
-
 #include <QTimer>
+#include "../src/AVThread.h"
+#include "stdint.h"
 
+class LibUsb;
 class HidThread;
+struct usb_dev_handle;
+typedef unsigned char       BYTE;
 
 class UsbHidTask : public Task{
 public :
@@ -40,6 +40,7 @@ class HidThread : public QObject
     friend class UsbHidTask;
 public: 
 	HidThread();
+    ~HidThread();
 
 public:
 	void ProcessVideoRead(BYTE* buf,int len);
@@ -48,25 +49,31 @@ public:
 
     void addReadTask();
     void addReadyReadTask();
+    void writeUart5Trans(QByteArray data);
+    void setTempPairConfig(QString& number);
+
 signals:
     void sendReadData(QByteArray);
+    void hidLost();
 	
-
 protected:
-//	void run();
-
     void readVideo(int timeout = 1000);
     void readData(int timeout = 10);
+
 private:
 	QString messageStr; 
 	volatile  bool stopped;
     QTimer* _readConfigTimer;
 
+//    QTimer* _refreshHidTimer;
+//    bool    _hidLost;//usb设备丢失；
     AVThread mReadUsbThread;
     AVThread mReadyReadThread;
+
 public slots:
     bool getConfig();
     bool setConfig();
+    void setUsbUart5Trans();
     bool setOSD(bool state = true);
 
 };

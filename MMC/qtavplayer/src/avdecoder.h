@@ -26,23 +26,16 @@ extern "C"
     #endif
 
     #include <libavutil/time.h>
-
     #include <libavcodec/avcodec.h>
     #include <libavcodec/avfft.h>
-
-
     #include <libavformat/avformat.h>
     #include <libswscale/swscale.h>
     #include <libavutil/imgutils.h>
-
     #include <libavfilter/buffersink.h>
     #include <libavfilter/buffersrc.h>
     #include <libavfilter/avfilter.h>
-
     #include <libavutil/opt.h>
-
     #include <libswresample/swresample.h>
-
     #include <libavutil/hwcontext.h>
 
     #ifdef LIBAVUTIL_VERSION_MAJOR
@@ -54,7 +47,7 @@ extern "C"
 class AVDecoder;
 class PacketQueue;
 class FrameQueue;
-
+AVDecoder *getAVDecoder();
 class AVDecoder: public QObject
 {
     Q_OBJECT
@@ -64,19 +57,19 @@ public:
     ~AVDecoder();
     void addMediaCallback(AVMediaCallback *media);
     void deleteMediaCallback(AVMediaCallback *media);
-
-    void setMediaCallback(AVMediaCallback *media);
     bool getmIsInitEC() {return mIsInitEC;}
+    int getCountMediaCallback(void);
 
 public :
-    qint64 requestRenderNextFrame();
-    void load(); //初始化
-    void setFilename(const QString &source);
-    void rePlay(); //重新加载
-    void saveTs(bool status = false);
-    void saveImage();
-
+    qint64  requestRenderNextFrame();
+    void    load(); //初始化
+    void    setFilename(const QString &source);
+    void    rePlay(); //重新加载
+    void    saveTs(bool status = false);
+    void    saveImage();
     static void msleep(unsigned int msec);
+    void    Delay(const AVPacket &packet, const int64_t &startTime) const;
+
 protected:
     void init();
     void init2();
@@ -84,41 +77,25 @@ protected:
     void decodec();
     void setFilenameImpl(const QString &source);
     void _rePlay();
-
     void requestRender(); //显示数据
     void wakeupPlayer();
+
 signals:
     void frameSizeChanged(int width, int height);
-//    void newVideoFrame(const QVideoFrame &frame);
     void senderEncodecStatus(bool);
+
 private:
     usbfifo                 *_usbfifo = nullptr;
 #if defined(Q_OS_WIN32)
-    LibUsb              *_hidUSB = nullptr;
+    LibUsb                  *_hidUSB = nullptr;
 #else
     UsbExample              *_hidUSB = nullptr;
 #endif
-
-
-//    qint64 lastReadPacktTime = 0;
-//    int timeout = 5000;
-//    static int interrupt_cb(void *ctx)
-//    {
-//        AVDecoder* avDecoder = (AVDecoder* )ctx;
-//        if(av_gettime() - avDecoder->lastReadPacktTime > avDecoder->timeout * 1000)
-//        {
-//            return -1;
-//        }
-//        return 0;
-//    }
-
     /* 推流 */
     void initEncodec();
     int  OpenOutput(string outUrl);
-
     void getPacketTask(int type = -1);
     void decodecTask(int type = -1);
-
     void release(bool isDeleted = false);
     void statusChanged(AVDefine::AVMediaStatus);
     int decode_write(AVCodecContext *avctx, AVPacket *packet);
@@ -131,59 +108,56 @@ private :
     void saveFrame(AVFrame *frame = nullptr);
 
 private:
-    QString outUrl;
-    bool mIsInitEC = false;
-    bool mIsInit = false;
-    bool mIsOpenVideoCodec = false;
-    QString mFilename; // = "udp://@227.70.80.90:2000";
-    int  mVideoIndex;
-    AVStream *mVideo = NULL;
-    AVFormatContext *mFormatCtx = nullptr;
-    AVCodecContext *mVideoCodecCtx = nullptr; //mCodecCtx
-    AVCodec *mVideoCodec = nullptr;           //mCodec
-    struct SwsContext *mVideoSwsCtx = nullptr; //视频参数转换上下文
-
-    PacketQueue* videoq = nullptr;      //为解码的视频原始包
-    FrameQueue* renderq = nullptr;      //为解码后视频包
-
+    QString                     outUrl;
+    bool                        mIsInitEC = false;
+    bool                        mIsInit = false;
+    bool                        mIsOpenVideoCodec = false;
+    QString                     mFilename; // = "udp://@227.70.80.90:2000";
+    int                         mVideoIndex;
+    AVStream *                  mVideo = NULL;
+    AVFormatContext *           mFormatCtx = nullptr;
+    AVCodecContext *            mVideoCodecCtx = nullptr; //mCodecCtx
+    AVCodec *                   mVideoCodec = nullptr;           //mCodec
+    struct SwsContext *         mVideoSwsCtx = nullptr; //视频参数转换上下文
+    PacketQueue*                videoq = nullptr;      //为解码的视频原始包
+    FrameQueue*                 renderq = nullptr;      //为解码后视频包
     /* 资源锁 */
-    QReadWriteLock mVideoCodecCtxMutex;
-
+    QReadWriteLock              mVideoCodecCtxMutex;
     //  ----- HW
 #if defined(Q_OS_WIN32)
-      QList<AVCodecHWConfig *> mHWConfigList;
+      QList<AVCodecHWConfig *>  mHWConfigList;
 #endif
-    bool                     mUseHw = false;
+    bool                        mUseHw = false;
     /** 硬解格式 */
-    enum AVPixelFormat mHWPixFormat;
-
+    enum AVPixelFormat          mHWPixFormat;
     /** 保存TS流 */
-    FILE *tsSave = nullptr;
+    FILE *                      tsSave = nullptr;
     /** 保存Image */
-    bool _isSaveImage = false;
-    AVFrame *_frameRGB = nullptr;
-    uint8_t *_out_buffer = nullptr;
-    struct SwsContext *mRGBSwsCtx = nullptr; //RGB转码器 -- 保存图片用
+    bool                        _isSaveImage = false;
+    AVDictionary*               options = nullptr;
+    AVFrame *                   _frameRGB = nullptr;
+    uint8_t *                   _out_buffer = nullptr;
+    struct SwsContext *         mRGBSwsCtx = nullptr; //RGB转码器 -- 保存图片用
 
 private:
-    QMutex mDeleteMutex;
+    QMutex                      mDeleteMutex;
+    QTimer*                     _fpsTimer = nullptr; //帧率统计心跳
+    uint                        _fpsFrameSum = 0;
+    uchar                       _fps = 0;
+    QSize                       mSize = QSize(0,0);
+    enum AVPixelFormat          mPixFormat;  //原始格式格式
+    AVThread                    mProcessThread;
+    AVThread                    mDecodeThread;
+    AVThread                    mPlayeThread;          //播放线程
+    QSet<AVMediaCallback *>     mCallbackSet;
+    QMutex                      mCallbackMutex;
+    AVDefine::AVMediaStatus      mStatus = AVDefine::AVMediaStatus_UnknownStatus;
+    bool                        _bisRelease;// false 不释放（默认）  true 释放
+    bool                        _pushRtmpFlag = false;
+    int                         videoWriteFrameCount = 0;
+    int64_t                     start_time  = 0;              //统计推的开始时间
+    qint64                      lastReadPacktTime = 0;
 
-    QTimer      *_fpsTimer = nullptr; //帧率统计心跳
-    uint        _fpsFrameSum = 0;
-
-    uchar       _fps = 0;
-//    VideoFormat vFormat;
-    QSize mSize = QSize(0,0);
-    enum AVPixelFormat mPixFormat;  //原始格式格式
-    AVThread mProcessThread;
-    AVThread mDecodeThread;
-    AVThread mPlayeThread; //播放线程
-
-    QSet<AVMediaCallback *> mCallbackSet;
-    QMutex mCallbackMutex;
-
-    AVMediaCallback *mCallback = nullptr;
-    AVDefine::AVMediaStatus mStatus = AVDefine::AVMediaStatus_UnknownStatus;
 };
 
 class AVCodecTask : public Task{
@@ -203,8 +177,7 @@ public :
         AVCodecTaskCommand_saveImage,//保存图片
         AVCoTaskCommand_Render,
     };
-    AVCodecTask(AVDecoder *codec,AVCodecTaskCommand command,double param = 0,QString param2 = ""):
-        mCodec(codec),command(command),param(param),param2(param2){}
+    AVCodecTask(AVDecoder *codec,AVCodecTaskCommand command,double param = 0,QString param2 = "");
 protected :
     /** 现程实现 */
     virtual void run();
@@ -218,161 +191,35 @@ private :
 class FrameQueue{
 public :
     FrameQueue(){init();}
-
     QQueue<AVFrame *> frames;
 private :
     QReadWriteLock mutex;
 public :
-    void init(){
-        release();
-    }
-
-    void put(AVFrame *frame){
-        if(frame == NULL)
-            return;
-        mutex.lockForWrite();
-        frames.push_back(frame);
-        mutex.unlock();
-    }
-
-    AVFrame *get(){
-        AVFrame *frame = NULL;
-        mutex.lockForWrite();
-        if(frames.size() > 0){
-            frame = frames.front();
-            frames.pop_front();
-        }
-        mutex.unlock();
-        return frame;
-    }
-
-    int size(){
-        mutex.lockForRead();
-        int len = frames.size();
-        mutex.unlock();
-        return len;
-    }
-
-    void release(){
-        mutex.lockForWrite();
-        QQueue<AVFrame *>::iterator begin = frames.begin();
-        QQueue<AVFrame *>::iterator end = frames.end();
-        while(begin != end){
-            AVFrame *frame = *begin;
-            if(frame != NULL){
-                av_frame_unref(frame);
-                av_free(frame);
-            }
-            frames.pop_front();
-            begin = frames.begin();
-        }
-        mutex.unlock();
-    }
+    void init();
+    void put(AVFrame *frame);
+    AVFrame *get();
+    int size();
+    void release();
 };
 
 class PacketQueue{
 public :
     PacketQueue(){init();}
-
     QQueue<AVPacket *> packets;
-//    QList<AVPacket *> packets;
     AVRational time_base;
 
 private :
     QReadWriteLock mutex;
 public :
-
-    void setTimeBase(AVRational &timebase){
-        this->time_base.den = timebase.den;
-        this->time_base.num = timebase.num;
-    }
-
-    void init(){
-        release();
-    }
-
-    void put(AVPacket *pkt){
-        if(pkt == NULL)
-            return;
-        mutex.lockForWrite();
-        packets.push_back(pkt);
-        mutex.unlock();
-    }
-
-    AVPacket *get(){
-        AVPacket *pkt = NULL;
-        mutex.lockForWrite();
-        if(packets.size() > 0){
-            pkt = packets.front();
-            packets.pop_front();
-        }
-        mutex.unlock();
-        return pkt;
-    }
-
-    void removeToTime(int time){
-        mutex.lockForRead();
-        QQueue<AVPacket *>::iterator begin = packets.begin();
-        QQueue<AVPacket *>::iterator end = packets.end();
-        while(begin != end){
-            AVPacket *pkt = *begin;
-            if(pkt != NULL){
-                if(av_q2d(time_base) * pkt->pts * 1000 >= time || packets.size() == 1){
-                    break;
-                }
-                av_packet_unref(pkt);
-                av_freep(pkt);
-            }
-            packets.pop_front();
-            begin = packets.begin();
-        }
-        mutex.unlock();
-    }
-
-    int diffTime(){
-        int time = 0;
-        mutex.lockForRead();
-        if(packets.size() > 1){
-            int start = av_q2d(time_base) * packets.front()->pts * 1000;
-            int end = av_q2d(time_base) * packets.back()->pts * 1000;
-            time = end - start;
-        }
-        mutex.unlock();
-        return time;
-    }
-
-    int startTime(){
-        int time = -1;
-        mutex.lockForRead();
-        if(packets.size() > 0){
-            time = av_q2d(time_base) * packets.front()->pts * 1000;
-        }
-        mutex.unlock();
-        return time;
-    }
-
-    int size(){
-        mutex.lockForRead();
-        int len = packets.size();
-        mutex.unlock();
-        return len;
-    }
-
-    void release(){
-        mutex.lockForWrite();
-        QQueue<AVPacket *>::iterator begin = packets.begin();
-        QQueue<AVPacket *>::iterator end = packets.end();
-        while(begin != end){
-            AVPacket *pkt = *begin;
-            if(pkt != NULL){
-                av_packet_unref(pkt);
-                av_freep(pkt);
-            }
-            packets.pop_front();
-            begin = packets.begin();
-        }
-        mutex.unlock();
-    }
+    void setTimeBase(AVRational &timebase);
+    void init();
+    void put(AVPacket *pkt);
+    AVPacket *get();
+    void removeToTime(int time);
+    int diffTime();
+    int startTime();
+    int size();
+    void release();
 };
 
 #endif // AVDECODER_H

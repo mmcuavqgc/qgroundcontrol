@@ -11,7 +11,8 @@ SOURCES += \
     $$PWD/src/painter/GlPainter.cpp \
     $$PWD/src/painter/GlslPainter.cpp \
     $$PWD/src/Enums.cpp \
-    $$PWD/src/fifo.cpp
+    $$PWD/src/fifo.cpp \
+    $$PWD/src/imageprovider.cpp
 
 HEADERS += \
     $$PWD/src/avdecoder.h \
@@ -23,20 +24,20 @@ HEADERS += \
     $$PWD/src/painter/GlPainter.h \
     $$PWD/src/painter/GlslPainter.h \
     $$PWD/src/Enums.h \
-    $$PWD/src/fifo.h
+    $$PWD/src/fifo.h \
+    $$PWD/src/imageprovider.h
 
 RESOURCES += \
     $$PWD/ffmpegqml.qrc
 
-unix{
-    # Android and iOS don't unclude these
-LIBS += -L$$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/lib/armeabi-v7a/ -lavcodec -lavfilter -lavformat -lavutil -lswscale -lswresample
-#-lavdevice -lpostproc
-INCLUDEPATH += $$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/include
-
 
 AndroidBuild {
     QT += usb
+    # Android and iOS don't unclude these
+    LIBS += -L$$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/lib/armeabi-v7a/ -lavcodec -lavfilter -lavformat -lavutil -lswscale -lswresample
+    #-lavdevice -lpostproc
+    INCLUDEPATH += $$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/include
+
     HEADERS += \
         $$PWD/src/usbexample.h
     SOURCES += \
@@ -50,9 +51,6 @@ AndroidBuild {
             $$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/lib/armeabi-v7a/libavformat.so \
             $$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/lib/armeabi-v7a/libswresample.so \
             $$PWD/libs/android/ffmpeg-4.0.2-android-gcc-lite/lib/armeabi-v7a/libswscale.so \
-        }
-    } else {
-
     }
 }
 

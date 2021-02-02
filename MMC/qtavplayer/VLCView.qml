@@ -3,34 +3,25 @@
 * Copyright (C) 2015 Tadej Novak <tadej@tano.si>
 */
 
-import QtQuick 2.0
-import VLCQt 1.1
-import QtMultimedia 5.5
-//import MMCSettings  1.0
-import QGroundControl               1.0
-//import QGroundControl.Controls      1.0
+import QtQuick              2.5
+import VLCQt                1.1
+import QtMultimedia         5.5
+import QGroundControl           1.0
+import QtQuick.Window           2.2
+import QtGraphicalEffects       1.0
+import "qrc:/qml/"
 
 Rectangle {
-    property string videoSource:/* "rtsp://192.168.1.129:6880/live" //*/ "rtmp://live.hkstv.hk.lxdns.com/live/hks1"// "rtsp://184.72.239.149/vod/mp4://BigBuckBunny_175k.mov" // "udp://@227.70.80.90:2000"
+    anchors.fill:       parent
+    color:              Qt.rgba(0,0,0,0.75)
 
-    property alias record: vidEncoder.record  //保存视频流用接口
+    property string     videoSource:    "rtmp://live.hkstv.hk.lxdns.com/live/hks1"
+    property alias      record:         vidEncoder.record  //保存视频流用接口
+
     function saveImage(){ //保存图片
         vidEncoder.saveImage()
     }
 
-    anchors.fill:   parent
-    color:          Qt.rgba(0,0,0,0.75)
-//     color:          Qt.rgba(0,9,0,0.75)
-
-//    onVisibleChanged: {
-//        if(!visible)
-//        {
-//            vidEncoder.url = ""
-//        }
-//        else{
-//            vidEncoder.url = videoSource
-//        }
-//    }
     MouseArea {
         anchors.fill: parent
         onDoubleClicked: {
@@ -38,13 +29,30 @@ Rectangle {
         }
     }
 
+
     VlcVideoPlayer {
-        id: vidEncoder
-        url: videoSource
-        anchors.fill: parent
-       // record: true    //保存视频
+        id:             vidEncoder
+        visible:        true
+        anchors.fill:   parent
         onStateChanged: {
             console.log("--------------onStateChanged", state)
+        }
+    }
+
+    Text {
+        z:1
+        anchors.top: parent.top
+        anchors.left: parent.left
+        color: vidEncoder && vidEncoder.encodecStatus ? "#0f0" : "#900"
+        text:  vidEncoder && vidEncoder.encodecStatus ? "RTMP push OK ": "RTMP push NG"
+    }
+
+
+    Connections {
+        target: mainWindowInner.item
+        onReallyClose: {
+            console.log("onReallyClose-----");
+            vidEncoder.destroy();
         }
     }
 
@@ -52,4 +60,11 @@ Rectangle {
         vidEncoder.url = videoSource
     }
 }
+
+
+
+
+
+
+
 

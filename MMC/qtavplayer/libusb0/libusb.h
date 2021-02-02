@@ -1,7 +1,8 @@
-#ifndef LIBUSB_H
+﻿#ifndef LIBUSB_H
 #define LIBUSB_H
 
 #include <QObject>
+#include <QTimer>
 
 #include "usbmonitor.h"
 #include "lusb0_usb.h"
@@ -9,7 +10,6 @@
 
 #include <QStringList>
 #include <QStringListModel>
-
 
 #define MY_VID 0xaaaa
 #define MY_PID 0xaa97
@@ -34,23 +34,37 @@ extern usb_dev_handle *VIDEODEV;
 extern usb_dev_handle *AUDIODEV;
 extern usb_dev_handle *CUSTOMERDEV;
 
+extern QMutex _mutexCOMMONDEV;
+extern QMutex _mutexVIDEODEV;
+extern QMutex _mutexAUDIODEV;
+extern QMutex _mutexCUSTOMERDEV;
+
 class LibUsb : public QObject
 {
     Q_OBJECT
 public:
     explicit LibUsb(QObject *parent = nullptr);
-    bool setConfig(); //対频
+    ~LibUsb();
+
+    bool setConfig();                         //  対频
+    void setTempConfig(QString& value);       //  设置临时对频
+    void setUsbUart5Trans();
+    void writeUart5Trans(QByteArray data);
+    bool checkHidList();
 
 signals:
     void sendConfigData(QByteArray);
 
 public slots:
+    void upConfigData(QByteArray);
     void GetHid(QString vid,QString pid);
     void UpdateDeviceList();
+    void hidLost();
 
 private:
-    QStringList devList;
-    QStringListModel *devListModel;
+    QStringList         devList;
+    QStringListModel *  devListModel;
+    QTimer*             _updateHidTimer;
 };
 
 extern LibUsb*    getUsbExample();

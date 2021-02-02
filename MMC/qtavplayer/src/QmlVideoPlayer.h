@@ -32,7 +32,7 @@
 
     \deprecated Deprecated since VLC-Qt 1.1, will be removed in 2.0
  */
-class Q_DECL_DEPRECATED  VlcQmlVideoPlayer : public VlcQmlVideoObject
+class /*Q_DECL_DEPRECATED */ VlcQmlVideoPlayer : public VlcQmlVideoObject
 {
 Q_OBJECT
 public:
@@ -61,6 +61,7 @@ public:
         \see setRecord
      */
     Q_PROPERTY(bool record READ record WRITE setRecord NOTIFY recordChanged)
+    Q_PROPERTY(bool encodecStatus READ encodecStatus /*WRITE setEncodecStatus*/ NOTIFY encodecStatusChanged)
 
 
     /*!
@@ -147,6 +148,8 @@ public:
      */
     bool record() const;
     void setRecord(const bool state);
+    bool encodecStatus();
+    void setEncodecStatus(bool state);
 
 
 signals:
@@ -154,12 +157,14 @@ signals:
     void recordChanged();
     void aspectRatioChanged();
     void cropRatioChanged();
+    void encodecStatusChanged();
 
 private slots:
 
 private:
     QUrl _url;
-    bool _record = false;
+    bool _record        = false;
+    bool mEncodecStatus = false;
 };
 
 #endif // VLCQT_QMLVIDEOPLAYER_H_

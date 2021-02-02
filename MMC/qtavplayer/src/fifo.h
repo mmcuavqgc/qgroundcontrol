@@ -1,4 +1,4 @@
-#ifndef FIFO_H
+﻿#ifndef FIFO_H
 #define FIFO_H
 //#include <sdkddkver.h>
 //#include <windows.h>
@@ -12,7 +12,7 @@
 //#include <setupapi.h>
 #include <QString>
 //#include "Singoogle.h"
-
+#include <QDebug>
 #include"qthread.h"
 #include <QMutex>
 #include <QReadWriteLock>
@@ -92,7 +92,7 @@ public :
 class usbfifo
 {
 public:
-		usbfifo(void);
+    usbfifo(void);
 	virtual ~usbfifo(void);
 public:
     BuffQueue* _buffQurue = nullptr;

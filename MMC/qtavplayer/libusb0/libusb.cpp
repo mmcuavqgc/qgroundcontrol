@@ -1,4 +1,4 @@
-#include "libusb.h"
+﻿#include "libusb.h"
 //#include <atlstr.h> // CString
 #include <QDebug>
 
@@ -8,6 +8,11 @@ usb_dev_handle *COMMONDEV = NULL;
 usb_dev_handle *VIDEODEV = NULL;
 usb_dev_handle *AUDIODEV = NULL;
 usb_dev_handle *CUSTOMERDEV = NULL;
+
+QMutex _mutexCOMMONDEV;
+QMutex _mutexVIDEODEV;
+QMutex _mutexAUDIODEV;
+QMutex _mutexCUSTOMERDEV;
 
 static LibUsb* usbExample = NULL;
 LibUsb *getUsbExample()
@@ -20,13 +25,44 @@ LibUsb *getUsbExample()
 LibUsb::LibUsb(QObject *parent) : QObject(parent)
 {
     devListModel = new QStringListModel(devList);
-//    ui.listView->setModel(devListModel);
+
+    _updateHidTimer = new QTimer(this);
+    _updateHidTimer->setSingleShot(false);
+    _updateHidTimer->setInterval(3000);
+    connect(_updateHidTimer, SIGNAL(timeout()), this, SLOT(UpdateDeviceList()));
 
     hidThread = new HidThread();
-    connect(hidThread, &HidThread::sendReadData, this, &LibUsb::sendConfigData);
+    connect(hidThread, SIGNAL(sendReadData(QByteArray)), this, SLOT(upConfigData(QByteArray)));
+    connect(hidThread, SIGNAL(hidLost()), this, SLOT(hidLost()));
 
+    usb_init(); /* initialize the library */
     GetHid("AAAA","AA97");
-    //    UpdateDeviceList();
+}
+
+LibUsb::~LibUsb()
+{
+    if(COMMONDEV){
+        usb_close(COMMONDEV);
+        COMMONDEV=NULL;
+    }
+
+    if(VIDEODEV){
+        usb_close(VIDEODEV);
+        VIDEODEV=NULL;
+    }
+    if(AUDIODEV){
+        usb_close(AUDIODEV);
+        AUDIODEV=NULL;
+    }
+    if(CUSTOMERDEV){
+        usb_close(CUSTOMERDEV);
+        CUSTOMERDEV=NULL;
+    }
+
+    if(hidThread) {
+        delete hidThread;
+        hidThread = NULL;
+    }
 }
 
 bool LibUsb::setConfig()
@@ -34,6 +70,65 @@ bool LibUsb::setConfig()
     if(!hidThread)
         return false;
     return hidThread->setConfig();
+}
+
+void LibUsb::setTempConfig(QString& value)
+{
+    if(!hidThread) return ;
+    hidThread->setTempPairConfig(value);
+}
+
+void LibUsb::setUsbUart5Trans()
+{
+    if(hidThread)
+        hidThread->setUsbUart5Trans();
+}
+
+void LibUsb::writeUart5Trans(QByteArray data)
+{
+    if(hidThread)
+        hidThread->writeUart5Trans(data);
+}
+
+void LibUsb::upConfigData(QByteArray array)
+{
+   emit  sendConfigData(array);
+}
+
+void LibUsb::hidLost()
+{
+    qDebug() << "--LibUsb::hidLost()";
+    if(!VIDEODEV)
+    {
+        devList.clear();
+        devListModel->removeRows(0,devListModel->rowCount());
+        devListModel->setStringList(devList);
+        UpdateDeviceList();
+        _updateHidTimer->start();
+    }
+}
+
+bool LibUsb::checkHidList()
+{
+    struct usb_bus *bus=NULL;
+    struct usb_device *dev=NULL;
+    int ret;
+    ret=usb_find_busses(); /* find all busses */
+    //qDebug()<<ret;
+    ret=usb_find_devices(); /* find all connected devices */
+    //qDebug()<<ret;
+    for (bus = usb_busses; bus; bus = bus->next)
+    {
+        for (dev = bus->devices; dev; dev = dev->next)
+        {
+            if ((dev->descriptor.idVendor == MY_VID)
+                    && (dev->descriptor.idProduct == MY_PID))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void LibUsb::GetHid(QString vid, QString pid)
@@ -45,11 +140,10 @@ void LibUsb::GetHid(QString vid, QString pid)
     int index=0;
     int ret;
 
-    usb_init(); /* initialize the library */
     ret=usb_find_busses(); /* find all busses */
-    qDebug()<<ret;
+    //qDebug()<<ret;
     ret=usb_find_devices(); /* find all connected devices */
-    qDebug()<<ret;
+    //qDebug()<<ret;
 
     if (vid=="AAAA" &&pid=="AA97" )
     {
@@ -62,7 +156,6 @@ void LibUsb::GetHid(QString vid, QString pid)
                 {
                     //COMMONDEV=usb_open(dev);
                     //qDebug()<<"bNumConfigurations:"+dev->descriptor.bNumConfigurations;
-
                     for (int i=0;i<dev->descriptor.bNumConfigurations;i++)
                     {
                         //qDebug()<<"bNumInterfaces:"+dev->config[i].bNumInterfaces;
@@ -79,11 +172,10 @@ void LibUsb::GetHid(QString vid, QString pid)
         VIDEODEV = tmpdev[1]; //interface 1
         AUDIODEV = tmpdev[2]; //interface 2
         CUSTOMERDEV= tmpdev[3]; //interface 3
-        qDebug() << "------ interface 0  1 2 3" <<COMMONDEV<<VIDEODEV<<AUDIODEV<<CUSTOMERDEV;
+        qDebug() << "------ libusb interface 0 1 2 3" <<COMMONDEV<<VIDEODEV<<AUDIODEV<<CUSTOMERDEV;
 
         if (COMMONDEV!=NULL)
         {
-
             ret=usb_set_configuration(COMMONDEV, MY_CONFIG);
 
             if (ret < 0)
@@ -236,20 +328,14 @@ void LibUsb::GetHid(QString vid, QString pid)
             }
         }
     }
-
+    if(VIDEODEV)
+        _updateHidTimer->stop();
     devListModel->setStringList(devList); //设备名称
 }
 
 void LibUsb::UpdateDeviceList()
 {
-    devList.clear();
-    devListModel->removeRows(0,devListModel->rowCount());
-    devListModel->setStringList(devList);
-
-    if (iHDCOMD.VID!=NULL && iHDCOMD.PID!=NULL)
-    {
-        GetHid(iHDCOMD.VID,iHDCOMD.PID);
-        return;
-    }
-    GetHid("AAAA","AA97");
+//    qDebug() << "------------LibUsb::UpdateDeviceList()";
+    if(checkHidList())
+        GetHid("AAAA","AA97");
 }

@@ -103,7 +103,7 @@ void RadioProvider::findDevice()
 void RadioProvider::_start()
 {
 //    qDebug() << "--------------------------RadioProvider::_start()";
-    _openSerialTimer->start();
+    //_openSerialTimer->start();
 }
 
 void RadioProvider::lostDevice()
@@ -111,7 +111,7 @@ void RadioProvider::lostDevice()
     _isconnect = false;
     _findDevice = false;
     _findDevideName = "";
-    _openSerialTimer->start();
+    //_openSerialTimer->start();
 }
 
 int RadioProvider::writeData(char type, QByteArray buff)

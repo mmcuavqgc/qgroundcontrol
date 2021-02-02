@@ -25,16 +25,17 @@
 #include <QtCore/QMap>
 #include <QtCore/QMutex>
 #include <QtQuick/QQuickPaintedItem>
+#include <QVideoFrame>
 
 #include "Enums.h"
-#include "painter/GlslPainter.h"
 #include "AVMediaCallback.h"
-#include "avdecoder.h"
+#include "painter/GlslPainter.h"
 
+
+//class QVideoFrame;
+class ShowImage;
 class VlcMediaPlayer;
-
-class GlslPainter;
-
+class AVDecoder;
 
 /*!
     \class VlcQmlVideoObject QmlVideoObject.h VLCQtQml/QmlVideoObject.h
@@ -45,12 +46,16 @@ class GlslPainter;
 
     \deprecated Deprecated since VLC-Qt 1.1, will be removed in 2.0
  */
-class Q_DECL_DEPRECATED  VlcQmlVideoObject : public QQuickPaintedItem,
+class /*Q_DECL_DEPRECATED */ VlcQmlVideoObject : public QQuickPaintedItem,
                                              public AVMediaCallback
 //                                           public VlcVideoMemoryStream
 {
 Q_OBJECT
 public:
+    Q_PROPERTY(ShowImage* qFrame READ qFrame NOTIFY qFrameChanged /*CONSTANT*/)
+
+    ShowImage* qFrame(){ return _qFrame; }
+
     /*!
         \brief VlcQmlVideoObject constructor.
         \param parent parent item
@@ -86,21 +91,23 @@ public:
      */
     void setCropRatio(const Vlc::Ratio &cropRatio);
 
+
+    Q_INVOKABLE void frameReady();
+    Q_INVOKABLE void reset();
+
 signals:
+    void newVideoImage(QImage);
+    void frameSizeChanged(int, int);
+    void qFrameChanged();
 
 protected:
     AVDecoder *_decoder;
-
-private slots:
-    void frameReady();
-    void reset();
-
-public:
 
 private:
     virtual void *lockCallback(void **planes);
     virtual void unlockCallback();
     virtual void formatCleanUpCallback();
+    virtual void sendimage(QImage img);
 
     virtual QRectF boundingRect() const;
     void geometryChanged(const QRectF &newGeometry,
@@ -116,22 +123,20 @@ private:
     void updateAspectRatio();
     void updateCropRatio();
 
-    QMutex _mutex;
-    QMutex _flagMutex;
-    VlcVideoFrame _frame;
-
-    QRectF _geometry;
-    QRectF _boundingRect;
-    QSize _frameSize;
-
-    GlslPainter *_graphicsPainter;
-
-    bool _paintedOnce;
-    bool _gotSize;
-
-    Vlc::Ratio _aspectRatio;
-    Vlc::Ratio _cropRatio;
-    bool _updateFlag;
+private:
+    QMutex          _mutex;
+    QMutex          _flagMutex;
+    VlcVideoFrame   _frame;
+    QRectF          _geometry;
+    QRectF          _boundingRect;
+    QSize           _frameSize;
+    GlslPainter *   _graphicsPainter;
+    bool            _paintedOnce;
+    bool            _gotSize;
+    Vlc::Ratio      _aspectRatio;
+    Vlc::Ratio      _cropRatio;
+    ShowImage*      _qFrame;
+    bool            _updateFlag;
 };
 
 #endif // VLCQT_QMLVIDEOOBJECT_H_

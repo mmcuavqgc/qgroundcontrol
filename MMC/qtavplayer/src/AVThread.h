@@ -1,4 +1,4 @@
-#ifndef AVTHREAD_H
+﻿#ifndef AVTHREAD_H
 #define AVTHREAD_H
 
 #include <QThread>
@@ -32,7 +32,6 @@ private :
     list<Task *> mFuns;
     QMutex mMutex;
     bool mIsRunning;
-
     bool mClearTask = false;
 };
 #endif // AVTHREAD_H

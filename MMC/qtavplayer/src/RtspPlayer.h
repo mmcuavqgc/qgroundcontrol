@@ -5,13 +5,15 @@
 #include <QAbstractVideoSurface>
 #include <QVideoSurfaceFormat>
 #include <QList>
-#include "avdecoder.h"
+
+
+class VlcQmlVideoObject;
 
 class RtspPlayer : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractVideoSurface *videoSurface READ videoSurface WRITE setVideoSurface)
-    Q_PROPERTY(AVDecoder *decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
+    Q_PROPERTY(VlcQmlVideoObject *decoder READ decoder WRITE setDecoder NOTIFY decoderChanged)
     Q_PROPERTY(int width READ width NOTIFY widthChanged)
     Q_PROPERTY(int height READ height NOTIFY heightChanged)
 
@@ -19,17 +21,19 @@ public:
     explicit RtspPlayer(QObject *parent = nullptr);
     ~RtspPlayer();
 
+    static void registerPlugin();
+
     inline QAbstractVideoSurface *videoSurface() { return m_surface; }
     void setVideoSurface(QAbstractVideoSurface *surface);
 
-    inline AVDecoder *decoder() const { return m_decoder; }
-    void setDecoder(AVDecoder *decoder);
+    /*inline*/ VlcQmlVideoObject *decoder() const { return m_decoder; }
+    void setDecoder(VlcQmlVideoObject *decoder);
 
     inline int width() const;
     inline int height() const;
 
 signals:
-    void decoderChanged(AVDecoder *decoder);
+    void decoderChanged(VlcQmlVideoObject *decoder);
 
     void widthChanged(int width);
     void heightChanged(int height);
@@ -37,6 +41,7 @@ signals:
 public slots:
     void onFrameSizeChanged(int width, int height);
     void onNewVideoFrameReceived(const QVideoFrame &frame);
+    void onNewVideoImageReceived(const QImage);
 
 protected:
     void setWidth(int width);
@@ -46,7 +51,7 @@ protected:
 private:
     QVideoSurfaceFormat m_format;
     QAbstractVideoSurface *m_surface;
-    AVDecoder *m_decoder;
+    VlcQmlVideoObject *m_decoder = nullptr;
 };
 
 int RtspPlayer::width() const

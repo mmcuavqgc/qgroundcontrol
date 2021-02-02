@@ -1,4 +1,4 @@
-#ifndef USBMONITOR_H
+﻿#ifndef USBMONITOR_H
 #define USBMONITOR_H
 
 #include <QObject>
@@ -11,7 +11,7 @@
 
 typedef struct HDCOMD
 {
-	int	ADDREM;//1:ADD; 0:REMOVE
+        int             ADDREM;//1:ADD; 0:REMOVE
 	QString		TYPE;
 	QString 	VID;
 	QString 	PID;

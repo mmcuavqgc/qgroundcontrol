@@ -1,4 +1,4 @@
-#include "AVThread.h"
+﻿#include "AVThread.h"
 
 AVThread::AVThread()
     : mIsRunning(false)
@@ -8,11 +8,9 @@ AVThread::AVThread()
 
 AVThread::~AVThread()
 {
-    stop();
-    quit();
-    wait(100);
-    if(mIsRunning){
-        terminate();//强行终断
+    if(isRunning()) {
+        quit();
+        wait();
     }
 
     mMutex.lock();
@@ -94,8 +92,8 @@ void AVThread::addTask(Task *task, int type)
     mFuns.push_back(task);
     mMutex.unlock();
 
-    if(!mIsRunning)
-        start();
+    mIsRunning = true;
+    start();
 }
 
 Task *AVThread::getTask(){
@@ -110,15 +108,17 @@ Task *AVThread::getTask(){
 }
 
 void AVThread::run(){
-    mIsRunning = true;
+//    SYSTEM_INFO info;
+//    GetSystemInfo(&info);
+//    if(info.dwNumberOfProcessors == 4)
+//        SetThreadAffinityMask(currentThread(), 0x08);
+
     while(mIsRunning){
         Task * task = getTask();
-        if(task == NULL){
-
-        }else{
+        if(task != NULL){
             task->run();
             delete task;
         }
-        QThread::usleep(30);
+        QThread::usleep(20);
     }
 }

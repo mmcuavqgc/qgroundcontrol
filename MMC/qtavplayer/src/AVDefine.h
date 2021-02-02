@@ -60,10 +60,6 @@ class AVDefine : public QObject{
     Q_ENUMS(AVDecodeMode)
 
 public :
-    /**
- * @brief The MediaStatus enum
- * 多媒体执行状态
- */
     enum AVMediaStatus {
         AVMediaStatus_UnknownStatus , //未知状态
         AVMediaStatus_NoMedia , //未找到多媒体

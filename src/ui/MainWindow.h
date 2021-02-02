@@ -18,7 +18,7 @@
 #pragma once
 
 #ifdef __mobile__
-#error Should not be include in mobile build
+//#error Should not be include in mobile build
 #endif
 
 #include <QMainWindow>

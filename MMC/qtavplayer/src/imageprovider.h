@@ -1,10 +1,11 @@
 ﻿#ifndef IMAGEPROVIDER_H
 #define IMAGEPROVIDER_H
 #include <QQuickImageProvider>
-#include<QImage>
-#include<QTcpSocket>
+#include <QImage>
+#include <QTcpSocket>
 #include <QTcpServer>
-#include<QBuffer>
+#include <QBuffer>
+#include <QMutex>
 
 class ImageProvider : public QQuickImageProvider
 {

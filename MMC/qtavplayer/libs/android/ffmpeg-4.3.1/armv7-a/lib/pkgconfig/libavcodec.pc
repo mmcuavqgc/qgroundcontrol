@@ -1,0 +1,14 @@
+prefix=/home/ziyu/Android-Tool/ffmpeg-4.3.1/android/armv7-a
+exec_prefix=${prefix}
+libdir=/home/ziyu/Android-Tool/ffmpeg-4.3.1/android/armv7-a/lib
+includedir=/home/ziyu/Android-Tool/ffmpeg-4.3.1/android/armv7-a/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 58.91.100
+Requires: 
+Requires.private: libswresample >= 3.7.100, libavutil >= 56.51.100
+Conflicts:
+Libs: -L${libdir}  -lavcodec 
+Libs.private: -pthread -lm -lz
+Cflags: -I${includedir}

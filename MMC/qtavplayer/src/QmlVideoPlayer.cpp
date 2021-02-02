@@ -24,21 +24,30 @@
 #include <QDir>
 #include <QStandardPaths>
 
+#include "imageprovider.h"
+#include "avdecoder.h"
+
 VlcQmlVideoPlayer::VlcQmlVideoPlayer(QQuickItem *parent)
     : VlcQmlVideoObject(parent)
     , _url(QUrl())
 {
-
-
+    if(_decoder) {
+        setEncodecStatus(_decoder->getmIsInitEC());
+        connect(_decoder, &AVDecoder::senderEncodecStatus, this, &VlcQmlVideoPlayer::setEncodecStatus);
+    }
 }
 
 VlcQmlVideoPlayer::~VlcQmlVideoPlayer()
 {
-
+//    if(_decoder) {
+//        delete _decoder;
+//        _decoder = NULL;
+//    }
 }
 
 void VlcQmlVideoPlayer::registerPlugin()
 {
+    ShowImage::registerPlugin();
     qmlRegisterType<VlcQmlVideoPlayer>("VLCQt", 1, 1, "VlcVideoPlayer");
 }
 
@@ -73,6 +82,18 @@ void VlcQmlVideoPlayer::setRecord(const bool state)
         _decoder->saveTs(_record);
 }
 
+
+bool VlcQmlVideoPlayer::encodecStatus()
+{
+    return mEncodecStatus;
+}
+
+void VlcQmlVideoPlayer::setEncodecStatus(bool state)
+{
+    mEncodecStatus = state;
+    emit encodecStatusChanged();
+}
+
 void VlcQmlVideoPlayer::pause()
 {
 
@@ -90,6 +111,7 @@ void VlcQmlVideoPlayer::stop()
 
 void VlcQmlVideoPlayer::saveImage()
 {
+//    qDebug() << "-----VlcQmlVideoPlayer::saveImage()";
     if(_decoder)
         _decoder->saveImage();
 }

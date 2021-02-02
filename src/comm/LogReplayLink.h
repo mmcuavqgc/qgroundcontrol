@@ -34,7 +34,7 @@ public:
     QString logFilenameShort(void);
 
     // Virtuals from LinkConfiguration
-    LinkType    type                    () { return LinkConfiguration::TypeLogReplay; }
+    LinkType    type                    () { return LinkConfiguration::TypeSerial; }
     void        copyFrom                (LinkConfiguration* source);
     void        loadSettings            (QSettings& settings, const QString& root);
     void        saveSettings            (QSettings& settings, const QString& root);

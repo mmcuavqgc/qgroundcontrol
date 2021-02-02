@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
 * VLC-Qt - Qt and libvlc connector library
 * Copyright (C) 2013 Tadej Novak <tadej@tano.si>
 *
@@ -24,6 +24,16 @@
 
 //#include "VLCQtCore/VideoFrame.h"
 #include "GlslPainter.h"
+
+
+
+
+const float textureCoordinates[]={
+    0, 1, // bottom left
+    1, 1, // bottom right
+    0, 0, // top left
+    1, 0, // top right
+};
 
 GlslPainter::GlslPainter()
     : _program(0) { }
@@ -98,6 +108,16 @@ void GlslPainter::init()
 
     _glF->glGenTextures(_textureCount, _textureIds);
 
+    stencilTestEnabled = _glF->glIsEnabled(GL_STENCIL_TEST);
+    scissorTestEnabled = _glF->glIsEnabled(GL_SCISSOR_TEST);
+
+
+    if (stencilTestEnabled)
+        _glF->glEnable(GL_STENCIL_TEST);
+    if (scissorTestEnabled)
+        _glF->glEnable(GL_SCISSOR_TEST);
+
+
     _inited = true;
 }
 
@@ -107,26 +127,12 @@ void GlslPainter::paint(QPainter *painter,
 {
     // Need to reenable those after native painting has begun, otherwise we might
     // not be able to paint anything.
-    bool stencilTestEnabled = _glF->glIsEnabled(GL_STENCIL_TEST);
-    bool scissorTestEnabled = _glF->glIsEnabled(GL_SCISSOR_TEST);
-
-    painter->beginNativePainting();
-
-    if (stencilTestEnabled)
-        _glF->glEnable(GL_STENCIL_TEST);
-    if (scissorTestEnabled)
-        _glF->glEnable(GL_SCISSOR_TEST);
 
     //////////////////////////////////////////////////////////////
     initTextures();
     //////////////////////////////////////////////////////////////
 
-    const float textureCoordinates[] = {
-        0, 1, // bottom left
-        1, 1, // bottom right
-        0, 0, // top left
-        1, 0, // top right
-    };
+    painter->beginNativePainting();
 
     const GLfloat targetVertex[] =
     {
@@ -135,13 +141,12 @@ void GlslPainter::paint(QPainter *painter,
         GLfloat(target.left()) , GLfloat(target.top()),
         GLfloat(target.right()), GLfloat(target.top())
     };
-    //
+
 
     const int width = quickItem->width();
     const int height = quickItem->height();
 
     const QTransform transform = painter->deviceTransform();
-
     const GLfloat wfactor = 2.0 / width;
     const GLfloat hfactor = -2.0 / height;
 
@@ -168,7 +173,7 @@ void GlslPainter::paint(QPainter *painter,
             GLfloat(transform.m33())
         }
     };
-
+    _program->link();
     _program->bind();
 
     _program->enableAttributeArray("targetVertex");
@@ -178,32 +183,33 @@ void GlslPainter::paint(QPainter *painter,
     _program->setUniformValue("positionMatrix", positionMatrix);
 
     if (_textureCount == 3) {
-        _gl->glActiveTexture(GL_TEXTURE0);
+        _glF->glActiveTexture(GL_TEXTURE0);
         _glF->glBindTexture(GL_TEXTURE_2D, _textureIds[0]);
-        _gl->glActiveTexture(GL_TEXTURE1);
+        _glF->glActiveTexture(GL_TEXTURE1);
         _glF->glBindTexture(GL_TEXTURE_2D, _textureIds[1]);
-        _gl->glActiveTexture(GL_TEXTURE2);
+        _glF->glActiveTexture(GL_TEXTURE2);
         _glF->glBindTexture(GL_TEXTURE_2D, _textureIds[2]);
-        _gl->glActiveTexture(GL_TEXTURE0);
+        _glF->glActiveTexture(GL_TEXTURE0);
 
-        _gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-        _gl->glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-        _gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        _gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        _glF->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        _glF->glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        _glF->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        _glF->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         _program->setUniformValue("texY", 0);
         _program->setUniformValue("texU", 1);
         _program->setUniformValue("texV", 2);
     }
+
     _program->setUniformValue("colorMatrix", _colorMatrix);
     _program->setUniformValue("opacity", GLfloat(painter->opacity()));
 
     _glF->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
+    _program->disableAttributeArray("targetVertex");
+    _program->disableAttributeArray("textureCoordinates");
     _program->release();
-    painter->endNativePainting();
 
-    //calculateFPS();
+    painter->endNativePainting();
 }
 
 void GlslPainter::calculateFPS()

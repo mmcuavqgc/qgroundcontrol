@@ -20,13 +20,16 @@
 *****************************************************************************/
 
 //#include "VLCQtCore/MediaPlayer.h"
-
 #include "QmlVideoObject.h"
-
 
 #include <QTimer>
 #include <QByteArray>
 #include <QBuffer>
+
+#include "imageprovider.h"
+#include "MainWindow.h"
+#include "avdecoder.h"
+//#include <QGCApplication.h>
 
 VlcQmlVideoObject::VlcQmlVideoObject(QQuickItem *parent)
     : QQuickPaintedItem(parent),
@@ -38,27 +41,37 @@ VlcQmlVideoObject::VlcQmlVideoObject(QQuickItem *parent)
       _gotSize(false),
       _aspectRatio(Vlc::Original),
       _cropRatio(Vlc::Original),
-      _decoder(new AVDecoder) ,
+      _decoder(getAVDecoder()),
       _updateFlag(true)
 {
     setRenderTarget(InvertedYFramebufferObject);
     setFlag(ItemHasContents, true);
 
-    _decoder->setMediaCallback(this);
     _decoder->addMediaCallback(this);
+    qDebug() << "enter VlcQmlVideoObject";
+    _qFrame = new ShowImage();
+    connect(this,&VlcQmlVideoObject::newVideoImage, _qFrame, &ShowImage::sendimage);
 
+    emit qFrameChanged();
 }
 
 VlcQmlVideoObject::~VlcQmlVideoObject()
 {
-    if (_graphicsPainter)
+    qDebug() << "----------------------VlcQmlVideoObject::~VlcQmlVideoObject";
+    _updateFlag = false;
+
+    if (_graphicsPainter) {
         delete _graphicsPainter;
-    qDebug() << "----------------------VlcQmlVideoObject::~VlcQmlVideoObject" << _decoder;
-    if(_decoder)
-    {
-        _decoder->deleteMediaCallback(this);
+        _graphicsPainter = NULL;
     }
 
+    if(_decoder) {
+        _decoder->deleteMediaCallback(this);
+//        if(_decoder->getCountMediaCallback() <= 1) {
+//            delete _decoder;
+//            _decoder = NULL;
+//        }
+    }
 }
 
 QRectF VlcQmlVideoObject::boundingRect() const
@@ -128,6 +141,7 @@ void VlcQmlVideoObject::setCropRatio(const Vlc::Ratio &cropRatio)
     updateBoundingRect();
 }
 
+
 Vlc::Ratio VlcQmlVideoObject::aspectRatio() const
 {
     return _aspectRatio;
@@ -141,19 +155,20 @@ void VlcQmlVideoObject::setAspectRatio(const Vlc::Ratio &aspectRatio)
 
 void VlcQmlVideoObject::paint(QPainter *painter)
 {
-    lock();
     if( _frame.inited )
     {
+        //qDebug() << "----------------init";
         if (!_graphicsPainter)
             _graphicsPainter = new GlslPainter;
 
-        Q_ASSERT(_graphicsPainter);
+        //Q_ASSERT(_graphicsPainter);
 
-        _gotSize = false;
-        if (!_gotSize || _frameSize.isNull()) {
+        if (!_gotSize) {
             // TODO: do scaling ourselfs?
             _gotSize = true;
             _frameSize = QSize(_frame.width, _frame.height);
+
+            emit frameSizeChanged(_frame.width, _frame.height);
             updateBoundingRect();
         }
 
@@ -161,22 +176,18 @@ void VlcQmlVideoObject::paint(QPainter *painter)
             painter->fillRect(_boundingRect, Qt::black);
             _paintedOnce = true;
         } else {
-            Q_ASSERT(_graphicsPainter);
+            //Q_ASSERT(_graphicsPainter);
             _graphicsPainter->setFrame(&_frame);
             if (!_graphicsPainter->inited())
                 _graphicsPainter->init();
             _graphicsPainter->paint(painter, _boundingRect, this); //显示
         }
-    }else{
-        qDebug() << "----------------------------------------unlock";
     }
-//    _frame.inited = false;
-    unlock();
     _updateFlag = true;
 }
 
 void VlcQmlVideoObject::geometryChanged(const QRectF &newGeometry,
-                                          const QRectF &oldGeometry)
+                                        const QRectF &oldGeometry)
 {
     _geometry = newGeometry;
     updateBoundingRect();
@@ -201,6 +212,18 @@ void VlcQmlVideoObject::reset()
         delete _graphicsPainter;
         _graphicsPainter = 0;
     }
+}
+
+void VlcQmlVideoObject::sendimage(QImage img)
+{
+    lock();
+    if(_qFrame){
+        _qFrame->sendimage(img);
+    }
+    unlock();
+    if(_qFrame)
+        _qFrame->sendQmlRefeshIm();
+
 }
 
 //void VlcQmlVideoObject::connectToMediaPlayer(VlcMediaPlayer *player)
@@ -239,21 +262,17 @@ void *VlcQmlVideoObject::lockCallback(void **planes)
 
     *planes = &_frame;
 
-//    for (unsigned int i = 0; i < _frame.planeCount; ++i) {
-//        planes[i] = reinterpret_cast<void *>(_frame.plane[i].data());
-//    }
-
     return 0; // There is only one buffer, so no need to identify it.
 }
 
 void VlcQmlVideoObject::unlockCallback()
 {
     unlock();
-
     // To avoid thread polution do not call frameReady directly, but via the
-    // event loop.
     if(_updateFlag) {
-        QMetaObject::invokeMethod(this, "frameReady", Qt::QueuedConnection);
+        _updateFlag = false;
+        QMetaObject::invokeMethod(this, "frameReady", Qt::AutoConnection);
+//        QMetaObject::invokeMethod(this, "frameReady");
     }
 }
 
@@ -262,5 +281,7 @@ void VlcQmlVideoObject::formatCleanUpCallback()
     _frame.inited = false;
     _updateFlag = true;
     // To avoid thread polution do not call reset directly but via the event loop.
-    QMetaObject::invokeMethod(this, "reset", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, "reset", Qt::AutoConnection);
+//    QMetaObject::invokeMethod(this, "reset");
+    // reset();
 }
